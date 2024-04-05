@@ -4,8 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mage Run</title>
+    <script src="node_modules/phaser/dist/phaser.min.js"></script>
 </head>
 <body>
-    <script src="node_modules/phaser/dist/phaser.min.js"></script>
+    <script>
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            scene: {
+                preload: preload,
+                create: create
+            }
+        };
+
+        const game = new Phaser.Game(config);
+
+        function preload() {
+            // Load your motorcycle emoji image (you can replace this with your own image)
+            this.load.image('motorcycle', 'path/to/motorcycle.png');
+        }
+
+        function create() {
+            // Add the motorcycle sprite in the center of the screen
+            const motorcycle = this.add.sprite(config.width / 2, config.height / 2, 'motorcycle');
+
+            // Set the scale and size of the motorcycle
+            motorcycle.setScale(2); // You can adjust this value as needed
+
+            // Add any other game logic or interactions here
+        }
+    </script>
 </body>
 </html>
