@@ -56,6 +56,12 @@ class GameScene extends Phaser.Scene {
             enemy.body.setImmovable(true);
             enemy.body.moves = false;
             enemy.setPosition(i % 2 === 0 ? 250 : 450, 200 * -i);
+            // every 3rd moves down at a speed of 10 (not affected by gravity)
+            if (i % 3 === 0) {
+                enemy.body.moves = true;
+                enemy.body.setAllowGravity(false);
+                enemy.body.velocity.y = 10;
+            }
         }
 
         // if player collides with enemy
@@ -82,7 +88,7 @@ class GameScene extends Phaser.Scene {
         this.button.y = this.cameras.main.height;
 
         // fire btn cooldown
-        this.fireBtnCooldown = 3000;
+        this.fireBtnCooldown = 0;
 
         //  fire button
         this.button.on('pointerdown', () => {
@@ -92,16 +98,16 @@ class GameScene extends Phaser.Scene {
             }
             this.fireBtnCooldown = 3000;
 
-            const effect = this.add.rectangle(this.player.x, this.player.y, 20, 10, 0xffff00);
+            const effect = this.add.rectangle(this.player.x, this.player.y, 10, 10, 0xffff00);
             this.physics.add.existing(effect); // Add physics to the effect
-            // make it expand horizontally
+
+            // make it expand vertically
             this.tweens.add({
                 targets: effect,
-                scaleX: 30,
+                scaleX: 35,
                 scaleY: 0.5,
-                duration: 300,
+                duration: 200,
                 ease: 'Cubic.easeOut',
-
                 onComplete: () => {
                     effect.destroy();
                 }
@@ -124,7 +130,7 @@ class GameScene extends Phaser.Scene {
         this.altFireBtn.y = this.cameras.main.height;
 
         // alt fire btn cooldown
-        this.altFireBtnCooldown = 3000;
+        this.altFireBtnCooldown = 0;
 
         //  alt fire button
         this.altFireBtn.on('pointerdown', () => {
@@ -135,26 +141,33 @@ class GameScene extends Phaser.Scene {
             this.altFireBtnCooldown = 3000;
 
             // pink
-            const effect = this.add.rectangle(this.player.x, this.player.y, 10, 200, 0xff00ff);
-            this.physics.add.existing(effect); // Add physics to the effect
-            effect.setOrigin(this.huggingLeft ? 0 : 1, 0.5);
-            effect.setOrigin(this.player.body.velocity.x > 0 ? 0 : 1, 0.5);
-            
-            // make it expand horizontally
-            this.tweens.add({
-                targets: effect,
-                scaleX: 30,
-                duration: 300,
-                ease: 'Cubic.easeOut',
+            const effect2 = this.add.rectangle(this.player.x, this.player.y, 20, 200, 0xff00ff);
+            this.physics.add.existing(effect2);
+            effect2.body.setAllowGravity(false);
 
+            // make it expand horizontally (whichever way the player is facing)
+            let direction = 0;
+            if (this.player.body.velocity.x > 0) {
+                direction = -1;
+            } else if (this.player.body.velocity.x < 0) {
+                direction = 1;
+            } else if (this.huggingLeft) {
+                direction = 1;
+            } else if (this.huggingRight) {
+                direction = -1;
+            }
+            this.tweens.add({
+                targets: effect2,
+                scaleX: 10,
+                x: this.player.x + 100 * direction,
+                duration: 500,
                 onComplete: () => {
-                    effect.destroy();
+                    effect2.destroy();
                 }
             });
-            effect.body.setAllowGravity(false);
 
             // if effect touches enemy
-            this.physics.add.collider(effect, this.children.list.filter(child => child.fillColor === 0xff6666), (effect, enemy) => {
+            this.physics.add.collider(effect2, this.children.list.filter(child => child.fillColor === 0xff6666), (effect, enemy) => {
                 effect.destroy();
                 enemy.destroy();
             });
@@ -232,7 +245,7 @@ const config = {
     height: this.innerHeight,
     parent: 'phaser-example',
     physics: {
-        default: 'arcade', 
+        default: 'arcade',
         arcade: {
             debug: true,
             gravity: {
