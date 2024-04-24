@@ -13,20 +13,34 @@ class Demo extends Phaser.Scene {
     create() {
         // Create player
         this.player = this.physics.add.image(400, 300, 'player');
-        this.player.setOrigin(0.5, 0.5);
         this.player.defaultSpeed = 160;
         this.player.speed = this.player.defaultSpeed;
 
         // give player hitbox
         this.physics.add.existing(this.player, true);
-        this.player.body.setCircle(15, 10, 10);
 
-        this.player.fireMode = 0;
+        // Set player speed
+        this.player.setDamping(true);
+        this.player.setDrag(0.99);
+        this.player.setMaxVelocity(200);
+
+
+
+
+        this.player.isDropping = false;
         // on click, set player to drop
         this.input.on('pointerdown', () => {
-            (this.player.fireMode < 4) ? this.player.fireMode += 1 : this.player.fireMode = 0;
+            this.player.isDropping = !this.player.isDropping;
             // change color of player
             this.player.setTint(this.player.isDropping ? 0xff0000 : 0xffffff);
+        });
+
+        // Enable WASD controls
+        this.cursors = this.input.keyboard.addKeys({
+            up: Phaser.Input.Keyboard.KeyCodes.W,
+            down: Phaser.Input.Keyboard.KeyCodes.S,
+            left: Phaser.Input.Keyboard.KeyCodes.A,
+            right: Phaser.Input.Keyboard.KeyCodes.D
         });
 
         // Set camera to follow player
@@ -55,6 +69,13 @@ class Demo extends Phaser.Scene {
         // Set world bounds
         this.physics.world.setBounds(0, 0, this.worldSize * this.tileSize, this.worldSize * this.tileSize);
 
+        // // When player overlaps a tile
+        // this.physics.add.overlap(this.player, this.tiles, (player, tile) => {
+        //     // Set player speed to tile speed
+        //     player.speed = tile.speed;
+        //     console.log('Player speed:', player.speed);
+        // });
+
         // Set camera bounds
         this.cameras.main.setBounds(0, 0, this.worldSize * this.tileSize, this.worldSize * this.tileSize);
 
@@ -68,10 +89,11 @@ class Demo extends Phaser.Scene {
 
         // every 2 seconds,
         this.time.addEvent({
-            delay: 200,
+            delay: 2000,
             loop: true,
             callback: () => {
-                if (this.player.fireMode === 0) {
+                if (this.player.isDropping) {
+
                     // get player coords
                     let x = this.player.x;
                     let y = this.player.y;
@@ -84,15 +106,26 @@ class Demo extends Phaser.Scene {
                         callback: () => {
                             // remove decoration
                             decoration.destroy();
-
                             let hitbox = this.add.circle(x, y, 50, 0xff0000, 0.5);
+
                             this.physics.add.existing(hitbox, true);
 
                             // When an enemy collides with hitbox
                             this.physics.add.overlap(hitbox, this.enemies, (hitbox, enemy) => {
+                                console.log('Enemy hit by player');
+                                console.log('total enemies:', this.enemies.length);
                                 enemy.destroy();
                                 this.enemies = this.enemies.filter(e => e !== enemy);
+                                console.log('total enemies:', this.enemies.length);
                             });
+
+                            // this.physics.add.overlap(hitbox, this.enemies, (hitbox, enemy) => {
+                            //     console.log('Enemy hit by player');
+                            //     console.log('total enemies:', this.enemies.length);
+                            //     enemy.destroy();
+                            //     this.enemies = this.enemies.filter(e => e !== enemy);
+                            //     console.log('total enemies:', this.enemies.length);
+                            // });
 
                             // after 50ms, remove hitbox
                             this.time.addEvent({
@@ -103,87 +136,37 @@ class Demo extends Phaser.Scene {
                             });
                         }
                     });
-                } else if (this.player.fireMode === 1){
-                    // create bullet
-                    let bullet = this.add.circle(this.player.x, this.player.y, 5, 0xff0000, 0.5);
-                    // debug color black
-                    bullet.debugColor = 0x000000;
-                    
+                } else {
 
-                    this.physics.add.existing(bullet, false);
-
-                    // move bullet toward closest enemy
-                    let closestEnemy = this.enemies.reduce((closest, enemy) => {
-                        let distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
-                        if (distance < closest.distance) {
-                            return { enemy, distance };
-                        }
-                        return closest;
-                    }, { enemy: null, distance: Infinity }).enemy;
-
-                    if (closestEnemy) {
-                        this.physics.moveToObject(bullet, closestEnemy, 300);
-                    } else {
-                        this.physics.moveTo(bullet, this.player.x, this.player.y, 300);
-                    }
-
-
-
-                    
-                    // When an enemy collides with hitbox
-                    this.physics.add.overlap(bullet, this.enemies, (bullet, enemy) => {
-                        enemy.destroy();
-                        this.enemies = this.enemies.filter(e => e !== enemy);
-                    });
-
-
-                    // delete after 0.5s
-                    this.time.addEvent({
-                        delay: 1000,
-                        callback: () => {
-                            bullet.destroy();
-                        }
-                    });
-                } else if (this.player.fireMode === 2) {
-                    // create circle on player
-                    let circle = this.add.circle(this.player.x, this.player.y, 50, 0xff0000, 0.5);
-                    this.physics.add.existing(circle, true);
-
-                    // When an enemy collides with hitbox
-                    this.physics.add.overlap(circle, this.enemies, (circle, enemy) => {
-                        enemy.destroy();
-                        this.enemies = this.enemies.filter(e => e !== enemy);
-                    });
-
-                    // after 50ms, remove hitbox
-                    this.time.addEvent({
-                        delay: 50,
-                        callback: () => {
-                            circle.destroy();
-                        }
-                    });
                 }
+
             }
         });
     }
 
 
     update() {
-        //find user pointer
-        let pointer = this.input.activePointer;
+        if (this.cursors.up.isDown)
+        {
+            this.physics.velocityFromRotation(this.player.rotation, 200, this.player.body.acceleration);
+        }
+        else
+        {
+            this.player.setAcceleration(0);
+        }
 
-
-        // find where user clicked (camera zoomed in)
-        let x = pointer.x + this.cameras.main.scrollX;
-        let y = pointer.y + this.cameras.main.scrollY;
-
-        // move player to where user clicked
-        this.physics.moveTo(this.player, x, y, this.player.speed);
-
-        // angle
-        let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, x, y);
-        this.player.setRotation(angle);
-
+        if (this.cursors.left.isDown)
+        {
+            this.player.setAngularVelocity(-300);
+        }
+        else if (this.cursors.right.isDown)
+        {
+            this.player.setAngularVelocity(300);
+        }
+        else
+        {
+            this.player.setAngularVelocity(0);
+        }
 
         this.enemies.forEach(enemy => {
             // reset enemy speed
