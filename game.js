@@ -9,310 +9,213 @@ class Demo extends Phaser.Scene {
 
     */
 
-
     create() {
-
-
-
-        //  The miniCam (cant see much...)
-        // this.minimap = this.cameras.add(0, 0, 500, 500).setZoom(0.1);
-        // this.minimap.setBackgroundColor(0x002244);
-
-        // Set world bounds
-        this.physics.world.setBounds(0, 0, this.worldSize * this.tileSize, this.worldSize * this.tileSize);
-
-        // Set camera bounds
-        this.cameras.main.setBounds(0, 0, this.worldSize * this.tileSize, this.worldSize * this.tileSize);
-
-        // Create player
-        this.player = this.physics.add.image(400, 300, 'player');
-        this.player.setOrigin(0.5, 0.5);
-        this.player.defaultSpeed = 160;
-        this.player.speed = this.player.defaultSpeed;
-        this.player.defaultAttackSpeed = 1000;
-        this.player.attackSpeed = this.player.defaultAttackSpeed;
-        this.player.juice = 100;
-
-        // give player hitbox
-        this.physics.add.existing(this.player, true);
+        this.player = this.physics.add.image(400, 300, 'player').setScale(1).setRotation(-Math.PI / 2);
+        this.player.setCollideWorldBounds(true);
         this.player.body.setCircle(15, 10, 10);
+        this.player.setAngularDrag(40);
+        this.player.setDrag(100);
+        this.player.setMaxVelocity(200);
+        this.player.setScale(0.3);
 
-        this.player.fireMode = 0;
-        // on click, set player to drop
-        this.input.on('pointerdown', () => {
-            (this.player.fireMode < 4) ? this.player.fireMode += 1 : this.player.fireMode = 0;
-            // change color of player
-            // this.player.setTint(this.player.isDropping ? 0xff0000 : 0xffffff);
-        });
+        this.playerSpeed = 1;
 
-        // Set camera to follow player
+        //world bounds are black
+        this.physics.world.setBounds(0, 0, width, height);
+        this.add.rectangle(0, 0, width, 20, 0x000000).setOrigin(0, 0);
+        this.add.rectangle(0, 0, 20, height, 0x000000).setOrigin(0, 0);
+        this.add.rectangle(0, height - 20, width, 20, 0x000000).setOrigin(0, 0);
+        this.add.rectangle(width - 20, 0, 20, height, 0x000000).setOrigin(0, 0);
+
+        // make the background a grid
+        const gridSize = 500;
+        for (let i = 0; i < width; i += gridSize) {
+            this.add.rectangle(i, 0, 1, height, 0x000000).setOrigin(0, 0);
+        }
+        for (let i = 0; i < height; i += gridSize) {
+            this.add.rectangle(0, i, width, 1, 0x000000).setOrigin(0, 0);
+        }
+
+        // center camera on player
         this.cameras.main.startFollow(this.player);
-        // zoom camera on player
         this.cameras.main.setZoom(3);
 
-        // Generate "infinite" world
-        this.worldSize = 10;
-        this.world = generateWorld(this.worldSize);
-        this.tileSize = 300;
-        this.tiles = this.add.group();
-        for (let y = 0; y < this.worldSize; y++) {
-            for (let x = 0; x < this.worldSize; x++) {
-                if (this.world[y][x] === 1) {
-                    // Create a black rectangle for each tile
-                    let tile = this.add.rectangle(x * this.tileSize, y * this.tileSize, this.tileSize, this.tileSize, 0x000000);
+        // group of enemies
+        this.enemies = this.physics.add.group();
 
-                    tile.speedModifier = 0.5;
-                    // make tile overlappable
-                    this.physics.add.existing(tile, true);
-
-                    this.tiles.add(tile);
-                }
-
-                // rarely there will be a blue tile
-                if (Math.random() > 0.8) {
-                    let tile = this.add.rectangle(x * this.tileSize, y * this.tileSize, this.tileSize, this.tileSize, 0x0000ff);
-                    tile.speedModifier = 2;
-                    this.physics.add.existing(tile, true);
-                    this.tiles.add(tile);
-                }
-
-                // rarely there will be a white tile
-                if (Math.random() > 0.9) {
-                    let tile = this.add.rectangle(x * this.tileSize, y * this.tileSize, this.tileSize, this.tileSize, 0xffffff);
-                    tile.speedModifier = 0.8;
-                    tile.attackSpeedModifier = 2;
-                    this.physics.add.existing(tile, true);
-                    this.tiles.add(tile);
-                }
-            }
-        }
-
-        // create enemy at random position near player
-        this.enemies = [];
-
-
-        // every 2 seconds,
+        // every 3 seconds
         this.time.addEvent({
-            delay: this.player.attackSpeed,
-            loop: true,
+            delay: 1000,
             callback: () => {
-                this.player.juice -= 20;
-                if (this.player.juice < 0) {
-                    this.player.juice = 0;
-                    return;
-                }
+                // find 200px in front of the player
+                const enemyPositionX = this.player.x + 600 * Math.cos(this.player.rotation);
+                const enemyPositionY = this.player.y + 600 * Math.sin(this.player.rotation);
 
-                if (this.player.fireMode === 0) {
-                    layMine.call(this);
 
-                } else if (this.player.fireMode === 1) {
-                    fireBullet.call(this);
-                } else if (this.player.fireMode === 2) {
-                    enableAura.call(this);
-                }
-            }
+                const enemy = this.physics.add.image(enemyPositionX, enemyPositionY, 'player').setScale(1).setRotation(-Math.PI / 2);
+                enemy.setCollideWorldBounds(true);
+                enemy.body.setCircle(15, 10, 10);
+                enemy.setAngularDrag(40);
+                enemy.setDrag(100);
+                enemy.setMaxVelocity(200);
+                enemy.setScale(0.5);
+                this.enemies.add(enemy);
+
+            },
+            loop: true,
         });
 
+        // every 1s, all enemies shoot bullets at player
+        this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                this.enemies.getChildren().forEach((enemy) => {
+                    //  50% chance nothing happens
+                    if (Math.random() < 0.5) {
+                        return;
+                    }
 
-        // Create a new camera for the UI elements
-        let UICamera = this.cameras.add(0, 0, width, 100);
+                    const bullet = this.add.circle(0, 0, 10, 0xff0000);
+                    this.physics.add.existing(bullet);
+                    bullet.body.setCircle(30, -20, -20);
+                    bullet.body.setAllowGravity(false);
+                    bullet.setScale(0.3);
+                    bullet.x = enemy.x;
+                    bullet.y = enemy.y;
+                    bullet.body.setVelocity(200 * Math.cos(this.physics.moveToObject(bullet, this.player, 100)), 200 * Math.sin(this.physics.moveToObject(bullet, this.player, 100)));
 
-        // Add your text to this new camera
-        this.text = this.add.text(0, 0, 'Juice: ' + this.player.juice, { font: '52px Courier', fill: '#00ff00' }).setScrollFactor(0);
-        
-        // make uicamera ignore everything but text
-        UICamera.ignore(this.player);
-        UICamera.ignore(this.enemies);
-        UICamera.ignore(this.tiles);
+                    // remove debug graphics
+                    // bullet.body.debugShowBody = false;
+                    bullet.body.debugShowVelocity = false;
 
-        //zoom uicamera
-        UICamera.setZoom(1);
+                    // check for collision with player
+                    this.physics.add.overlap(this.player, bullet, (player, bullet) => {
+                        // player.destroy();
+                        // bullet.destroy();
 
+                        //restart scene
+                        this.scene.restart();
+                    });
+
+                    // destroy bullet after 1s
+                    this.time.addEvent({
+                        delay: 2000,
+                        callback: () => {
+                            bullet.destroy();
+                        },
+                    });
+                });
+            },
+            loop: true,
+        });
+
+        // every 0.5s, shoot a bullet
+        this.time.addEvent({
+            delay: 300,
+            callback: () => {
+                // create white circle
+                const bullet = this.add.circle(0, 0, 10, 0xffffff);
+                this.physics.add.existing(bullet);
+                bullet.body.setCircle(30, -20, -20);
+                bullet.body.setAllowGravity(false);
+                bullet.setScale(0.3);
+                bullet.x = this.player.x + 0 * Math.cos(this.player.rotation);
+                bullet.y = this.player.y + 0 * Math.sin(this.player.rotation);
+                bullet.body.setVelocity(200 * Math.cos(this.player.rotation), 200 * Math.sin(this.player.rotation));
+
+
+                // remove debug graphics
+                // bullet.body.debugShowBody = false;
+                bullet.body.debugShowVelocity = false;
+
+                // check for collision with enemies
+                this.physics.add.overlap(this.enemies, bullet, (enemy, bullet) => {
+                    enemy.destroy();
+                    bullet.destroy();
+                });
+
+                // destroy bullet after 1s
+                this.time.addEvent({
+                    delay: 2000,
+                    callback: () => {
+                        bullet.destroy();
+                    },
+                });
+            },
+            loop: true,
+        });
     }
-
 
     update() {
-        // update juice
-        this.text.setText('Juice: ' + this.player.juice);
-
-
-
-        //find user pointer
-        let pointer = this.input.activePointer;
-
-
-        // find where user clicked (camera zoomed in)
-        let x = pointer.x + this.cameras.main.scrollX;
-        let y = pointer.y + this.cameras.main.scrollY;
-
-        // move player to where user clicked
-        this.physics.moveTo(this.player, x, y, this.player.speed);
-
-        // angle
-        let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, x, y);
-        this.player.setRotation(angle);
-
-
-        this.enemies.forEach(enemy => {
-            // reset enemy speed
-            enemy.speed = enemy.defaultSpeed;
-
-            // slow enemy on tiles
-            this.physics.overlap(enemy, this.tiles, (enemy, tile) => {
-                enemy.speed = enemy.defaultSpeed * tile.speedModifier;
-            });
-
-            // move enemy toward player
-            this.physics.moveToObject(enemy, this.player, enemy.speed);
+        // move enemies toward player
+        this.enemies.getChildren().forEach((enemy) => {
+            this.physics.moveToObject(enemy, this.player, 100);
         });
 
-        // set player speed
-        this.player.speed = this.player.defaultSpeed;
-        this.player.attackSpeed = this.player.defaultAttackSpeed;
-        // slow player on tiles
-        this.physics.overlap(this.player, this.tiles, (player, tile) => {
-            player.speed = player.defaultSpeed * tile.speedModifier;
-            player.attackSpeed = player.defaultAttackSpeed * tile.attackSpeedModifier;
 
-            if (tile.speedModifier === 2) {
-                // add to juice
-                this.player.juice += 1;
-            }
+        const Wkey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+        const Akey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+        const Skey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+        const Dkey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+
+        // move forward
+        if (Wkey.isDown) {
+            this.playerSpeed += 0.04;
+        } else if (Skey.isDown) {
+            this.playerSpeed -= 0.05
+        } else {
+            // (this.playerSpeed > 1) ? this.playerSpeed -= 0.01 : this.playerSpeed = 1;
+            this.playerSpeed > 0 ? this.playerSpeed -= 0.001 : this.playerSpeed += 0.001;
+        }
+        this.player.x += this.playerSpeed * Math.cos(this.player.rotation);
+        this.player.y += this.playerSpeed * Math.sin(this.player.rotation);
+
+        // rotate 
+        if (Akey.isDown) {
+            this.player.setAngularVelocity(
+                this.player.body.angularVelocity - 1.5
+            );
+        } else if (Dkey.isDown) {
+            this.player.setAngularVelocity(
+                this.player.body.angularVelocity + 1.5
+            );
+        } else {
+            // set angular velocity closer to 0
+            this.player.setAngularVelocity(
+                this.player.body.angularVelocity * 0.95
+            );
+        }
+
+        // set camera rotation to player rotation
+        const cameraRotation = this.player.rotation + Math.PI / 2;
+        this.cameras.main.setRotation(-cameraRotation);
+
+        // leave a temporary blue trail
+        const trail = this.add.circle(this.player.x, this.player.y, 5, 0x000000f);
+        // put under player
+        trail.depth = -1;
+
+        // make trail get progressively smaller
+        this.tweens.add({
+            targets: trail,
+            scale: 0,
+            duration: 1000,
+            onComplete: () => {
+                trail.destroy();
+            },
         });
 
-        // if less than 3 enemies, add one near player
-        if (this.enemies.length < 3) {
-            let x = Phaser.Math.Between(this.player.x - 300, this.player.x + 300);
-            let y = Phaser.Math.Between(this.player.y - 300, this.player.y + 300);
-            createEnemy.call(this, x, y);
-        }
-    }
-}
-
-function createEnemy(x, y) {
-    console.log('creating enemy');
-    let enemy = this.physics.add.sprite(x, y, 'enemy');
-    enemy.defaultSpeed = 100;
-    enemy.speed = enemy.defaultSpeed;
-    this.enemies.push(enemy);
-
-    // give enemy hitbox
-    this.physics.add.existing(enemy, true);
-
-
-    // When enemy collides with player
-    this.physics.add.collider(enemy, this.player, () => {
-        console.log('Player hit by enemy');
-        this.scene.restart();
-    });
-}
-
-function generateWorld(size) {
-    // Generate a simple world of size x size tiles
-    let world = [];
-    for (let y = 0; y < size; y++) {
-        let row = [];
-        for (let x = 0; x < size; x++) {
-            row.push(Math.random() > 0.8 ? 1 : 0);
-        }
-        world.push(row);
-    }
-    return world;
-}
-
-function fireBullet() {
-    // create bullet
-    let bullet = this.add.circle(this.player.x, this.player.y, 5, 0xff0000, 0.5);
-    // debug color black
-    bullet.debugColor = 0x000000;
-
-
-    this.physics.add.existing(bullet, false);
-
-    // move bullet toward closest enemy
-    let closestEnemy = this.enemies.reduce((closest, enemy) => {
-        let distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
-        if (distance < closest.distance) {
-            return { enemy, distance };
-        }
-        return closest;
-    }, { enemy: null, distance: Infinity }).enemy;
-
-    if (closestEnemy) {
-        this.physics.moveToObject(bullet, closestEnemy, 300);
-    } else {
-        this.physics.moveTo(bullet, this.player.x, this.player.y, 300);
+        // make trail go from white to red
+        this.tweens.add({
+            targets: trail,
+            fillAlpha: 0,
+            duration: 1000,
+            onComplete: () => {
+                trail.destroy();
+            },
+        });
     }
 
-
-
-
-    // When an enemy collides with hitbox
-    this.physics.add.overlap(bullet, this.enemies, (bullet, enemy) => {
-        enemy.destroy();
-        this.enemies = this.enemies.filter(e => e !== enemy);
-    });
-
-
-    // delete after 0.5s
-    this.time.addEvent({
-        delay: 1000,
-        callback: () => {
-            bullet.destroy();
-        }
-    });
-}
-function enableAura() {
-    // create circle on player
-    let circle = this.add.circle(this.player.x, this.player.y, 50, 0xff0000, 0.5);
-    this.physics.add.existing(circle, true);
-
-    // When an enemy collides with hitbox
-    this.physics.add.overlap(circle, this.enemies, (circle, enemy) => {
-        enemy.destroy();
-        this.enemies = this.enemies.filter(e => e !== enemy);
-    });
-
-    // after 50ms, remove hitbox
-    this.time.addEvent({
-        delay: 50,
-        callback: () => {
-            circle.destroy();
-        }
-    });
-}
-function layMine() {
-    // get player coords
-    let x = this.player.x;
-    let y = this.player.y;
-
-    // show attack hitbox around player (300px radius)
-    let decoration = this.add.circle(x, y, 5, 0xff0000, 0.5);
-
-    this.time.addEvent({
-        delay: 1000,
-        callback: () => {
-            // remove decoration
-            decoration.destroy();
-
-            let hitbox = this.add.circle(x, y, 50, 0xff0000, 0.5);
-            this.physics.add.existing(hitbox, true);
-
-            // When an enemy collides with hitbox
-            this.physics.add.overlap(hitbox, this.enemies, (hitbox, enemy) => {
-                enemy.destroy();
-                this.enemies = this.enemies.filter(e => e !== enemy);
-            });
-
-            // after 50ms, remove hitbox
-            this.time.addEvent({
-                delay: 50,
-                callback: () => {
-                    hitbox.destroy();
-                }
-            });
-        }
-    });
 }
 
 
