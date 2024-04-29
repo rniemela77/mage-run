@@ -55,7 +55,7 @@ class Demo extends Phaser.Scene {
 
 
         this.cameras.main.startFollow(this.player.sprite());
-        this.cameras.main.setZoom(5);
+        this.cameras.main.setZoom(2);
 
 
         // player bullet collision
@@ -68,25 +68,16 @@ class Demo extends Phaser.Scene {
 
 
     update() {
-        // rotate camera
+        // rotate cameras
         const cameraRotation = this.player.sprite().rotation + Math.PI / 2;
         this.cameras.main.setRotation(-cameraRotation);
-
-        // rotate minimap
         this.map.minimap.setRotation(-cameraRotation);
-
-        
-        // console.log(this.cameras);
-        
 
         this.player.movement();
 
         this.enemies.chase();
 
-
-        // crosshair position
         this.crosshair.update();
-
 
         // check if any enemy is within the crosshair
         this.enemies.sprites().getChildren().forEach((enemy) => {

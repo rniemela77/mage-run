@@ -17,6 +17,22 @@ class Map {
         this.createGrid();
 
         this.miniMap();
+
+        // create white
+        // this.circle = this.scene.add.circle(this.player.sprite().x, this.player.sprite().y, 200, 0xffffff);
+        // this.circle.setAlpha(0.2);
+        // this.physics.add.existing(this.circle);
+
+        // create a ring around the player
+        // this.ring = this.scene.add.circle(this.player.sprite().x, this.player.sprite().y, this.width / 3, 0xffffff);   
+        // this.ring.depth = -1;
+        // this.ring.fillAlpha = 0;
+        // this.ring.setStrokeStyle(150, 0xffffff);
+    
+        // this.ring.setAlpha(0.2);
+        // this.physics.add.existing(this.ring);
+
+
     }
 
     update() {
@@ -57,9 +73,10 @@ class Map {
     }
 
     createBorder() {
+        this.width = 1500;
+        this.height = 1500;
         let width = this.width;
         let height = this.height;
-        //world bounds are black
         this.physics.world.setBounds(0, 0, width, height);
         this.scene.add.rectangle(0, 0, width, 20, 0x000000).setOrigin(0, 0);
         this.scene.add.rectangle(0, 0, 20, height, 0x000000).setOrigin(0, 0);
@@ -69,21 +86,50 @@ class Map {
 
     createGrid() {
         // make the background a grid
-        const gridSize = 500;
-        for (let i = 0; i < this.scene.width; i += gridSize) {
-            this.scene.add.rectangle(i, 0, 1, this.scene.height, 0x000000).setOrigin(0, 0);
-        }
-        for (let i = 0; i < this.scene.height; i += gridSize) {
-            this.scene.add.rectangle(0, i, this.scene.width, 1, 0x000000).setOrigin(0, 0);
-        }
+        // const gridSize = 500;
+        // for (let i = 0; i < this.scene.width; i += gridSize) {
+        //     this.scene.add.rectangle(i, 0, 1, this.scene.height, 0x000000).setOrigin(0, 0);
+        // }
+        // for (let i = 0; i < this.scene.height; i += gridSize) {
+        //     this.scene.add.rectangle(0, i, this.scene.width, 1, 0x000000).setOrigin(0, 0);
+        // }
+        // return;
 
-        // set a path of tiles to be white
-        for (let i = 0; i < 10; i++) {
-            // this.scene.add.rectangle(0, i * gridSize, gridSize, gridSize, 0xffffff).setOrigin(0, 0);
+        // randomly generated track
+        const track = [
+            ["1", "1", "1"],
+            ["1", "0", "1"],
+            ["1", "1", "1"],
+        ];
+
+        const gridRows = track.length;
+        const gridCols = track[0].length;
+
+        const tileWidth = this.width / gridCols;
+        const tileHeight = this.height / gridRows;
+
+        const tileSize = Math.min(tileWidth, tileHeight);
+
+        for (let i = 0; i < track.length; i++) {
+            for (let j = 0; j < track[i].length; j++) {
+                const tile = track[i][j];
+                if (tile === "1") {
+                    const rect = this.scene.add.rectangle(j * tileWidth, i * tileHeight, tileWidth, tileHeight, 0xffffff);
+                    this.physics.add.existing(rect);
+                    rect.body.immovable = true;
+                    rect.body.debugShowBody = false;
+                    rect.depth = -1;
+                    rect.setOrigin(0, 0);
+                    rect.alpha = 0.2;
+
+
+                }
+            }
         }
     }
 
     createCircles() {
+        return;
         this.obstacles = this.physics.add.group();
         for (let i = 0; i < 10; i++) {
             const randomSize = Phaser.Math.Between(70, 300);
@@ -101,6 +147,7 @@ class Map {
     }
 
     createPath() {
+        return;
         this.path = this.scene.add.rectangle(this.player.sprite().x, this.player.sprite().y, 200, 600, 0x0000ff);
         this.physics.add.existing(this.path);
         this.path.depth = -1;
