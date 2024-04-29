@@ -1,3 +1,13 @@
+
+// import Enemy from './scripts/enemy.js';
+
+
+
+
+import Enemy from './scripts/enemies.js';
+import Player from './scripts/player.js';
+import Crosshair from './scripts/crosshair.js';
+import Map from './scripts/map.js';
 class Demo extends Phaser.Scene {
     preload() {
         this.load.image('player', 'assets/triangle.png');
@@ -8,214 +18,107 @@ class Demo extends Phaser.Scene {
                 MODIFIERY
 
     */
-
+    1
     create() {
-        this.player = this.physics.add.image(400, 300, 'player').setScale(1).setRotation(-Math.PI / 2);
-        this.player.setCollideWorldBounds(true);
-        this.player.body.setCircle(15, 10, 10);
-        this.player.setAngularDrag(40);
-        this.player.setDrag(100);
-        this.player.setMaxVelocity(200);
-        this.player.setScale(0.3);
+        this.height = height;
+        this.width = width;
 
-        this.playerSpeed = 1;
-
-        //world bounds are black
-        this.physics.world.setBounds(0, 0, width, height);
-        this.add.rectangle(0, 0, width, 20, 0x000000).setOrigin(0, 0);
-        this.add.rectangle(0, 0, 20, height, 0x000000).setOrigin(0, 0);
-        this.add.rectangle(0, height - 20, width, 20, 0x000000).setOrigin(0, 0);
-        this.add.rectangle(width - 20, 0, 20, height, 0x000000).setOrigin(0, 0);
-
-        // make the background a grid
-        const gridSize = 500;
-        for (let i = 0; i < width; i += gridSize) {
-            this.add.rectangle(i, 0, 1, height, 0x000000).setOrigin(0, 0);
-        }
-        for (let i = 0; i < height; i += gridSize) {
-            this.add.rectangle(0, i, width, 1, 0x000000).setOrigin(0, 0);
-        }
-
-        // center camera on player
-        this.cameras.main.startFollow(this.player);
-        this.cameras.main.setZoom(3);
-
-        // group of enemies
-        this.enemies = this.physics.add.group();
-
-        // every 3 seconds
-        this.time.addEvent({
-            delay: 1000,
-            callback: () => {
-                // find 200px in front of the player
-                const enemyPositionX = this.player.x + 600 * Math.cos(this.player.rotation);
-                const enemyPositionY = this.player.y + 600 * Math.sin(this.player.rotation);
+        this.player = new Player(this);
+        this.enemies = new Enemy(this);
+        this.crosshair = new Crosshair(this);
+        this.map = new Map(this);
 
 
-                const enemy = this.physics.add.image(enemyPositionX, enemyPositionY, 'player').setScale(1).setRotation(-Math.PI / 2);
-                enemy.setCollideWorldBounds(true);
-                enemy.body.setCircle(15, 10, 10);
-                enemy.setAngularDrag(40);
-                enemy.setDrag(100);
-                enemy.setMaxVelocity(200);
-                enemy.setScale(0.5);
-                this.enemies.add(enemy);
-
-            },
-            loop: true,
-        });
-
-        // every 1s, all enemies shoot bullets at player
-        this.time.addEvent({
-            delay: 1000,
-            callback: () => {
-                this.enemies.getChildren().forEach((enemy) => {
-                    //  50% chance nothing happens
-                    if (Math.random() < 0.5) {
-                        return;
-                    }
-
-                    const bullet = this.add.circle(0, 0, 10, 0xff0000);
-                    this.physics.add.existing(bullet);
-                    bullet.body.setCircle(30, -20, -20);
-                    bullet.body.setAllowGravity(false);
-                    bullet.setScale(0.3);
-                    bullet.x = enemy.x;
-                    bullet.y = enemy.y;
-                    bullet.body.setVelocity(200 * Math.cos(this.physics.moveToObject(bullet, this.player, 100)), 200 * Math.sin(this.physics.moveToObject(bullet, this.player, 100)));
-
-                    // remove debug graphics
-                    // bullet.body.debugShowBody = false;
-                    bullet.body.debugShowVelocity = false;
-
-                    // check for collision with player
-                    this.physics.add.overlap(this.player, bullet, (player, bullet) => {
-                        // player.destroy();
-                        // bullet.destroy();
-
-                        //restart scene
-                        this.scene.restart();
-                    });
-
-                    // destroy bullet after 1s
-                    this.time.addEvent({
-                        delay: 2000,
-                        callback: () => {
-                            bullet.destroy();
-                        },
-                    });
-                });
-            },
-            loop: true,
-        });
-
-        // every 0.5s, shoot a bullet
-        this.time.addEvent({
-            delay: 300,
-            callback: () => {
-                // create white circle
-                const bullet = this.add.circle(0, 0, 10, 0xffffff);
-                this.physics.add.existing(bullet);
-                bullet.body.setCircle(30, -20, -20);
-                bullet.body.setAllowGravity(false);
-                bullet.setScale(0.3);
-                bullet.x = this.player.x + 0 * Math.cos(this.player.rotation);
-                bullet.y = this.player.y + 0 * Math.sin(this.player.rotation);
-                bullet.body.setVelocity(200 * Math.cos(this.player.rotation), 200 * Math.sin(this.player.rotation));
 
 
-                // remove debug graphics
-                // bullet.body.debugShowBody = false;
-                bullet.body.debugShowVelocity = false;
 
-                // check for collision with enemies
-                this.physics.add.overlap(this.enemies, bullet, (enemy, bullet) => {
-                    enemy.destroy();
-                    bullet.destroy();
-                });
 
-                // destroy bullet after 1s
-                this.time.addEvent({
-                    delay: 2000,
-                    callback: () => {
-                        bullet.destroy();
-                    },
-                });
-            },
-            loop: true,
+        // Create a new camera for the UI elements
+        // let UICamera = this.cameras.add(0, 0, 500, 200);
+
+        // minimap
+        // let minimap = this.cameras.add(width - 200, height - 200, 200, 200);
+        // minimap.startFollow(this.player);
+        // minimap.setZoom(0.2);
+
+
+        // camera ignores player and follows the UI
+        // UICamera.ignore(this.player);
+        // UICamera.ignore(this.enemies);
+
+        //zoom uicamera
+        // UICamera.setZoom(1);
+
+        // create a circle around the player
+
+        // this.heat = 0;
+
+
+        this.cameras.main.startFollow(this.player.sprite());
+        this.cameras.main.setZoom(5);
+
+
+        // player bullet collision
+        this.physics.add.overlap(this.enemies.sprites(), this.player.playerBullets, (enemy, bullet) => {
+            enemy.destroy();
+            bullet.destroy();
         });
     }
+
+
 
     update() {
-        // move enemies toward player
-        this.enemies.getChildren().forEach((enemy) => {
-            this.physics.moveToObject(enemy, this.player, 100);
-        });
-
-
-        const Wkey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
-        const Akey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
-        const Skey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
-        const Dkey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
-
-        // move forward
-        if (Wkey.isDown) {
-            this.playerSpeed += 0.04;
-        } else if (Skey.isDown) {
-            this.playerSpeed -= 0.05
-        } else {
-            // (this.playerSpeed > 1) ? this.playerSpeed -= 0.01 : this.playerSpeed = 1;
-            this.playerSpeed > 0 ? this.playerSpeed -= 0.001 : this.playerSpeed += 0.001;
-        }
-        this.player.x += this.playerSpeed * Math.cos(this.player.rotation);
-        this.player.y += this.playerSpeed * Math.sin(this.player.rotation);
-
-        // rotate 
-        if (Akey.isDown) {
-            this.player.setAngularVelocity(
-                this.player.body.angularVelocity - 1.5
-            );
-        } else if (Dkey.isDown) {
-            this.player.setAngularVelocity(
-                this.player.body.angularVelocity + 1.5
-            );
-        } else {
-            // set angular velocity closer to 0
-            this.player.setAngularVelocity(
-                this.player.body.angularVelocity * 0.95
-            );
-        }
-
-        // set camera rotation to player rotation
-        const cameraRotation = this.player.rotation + Math.PI / 2;
+        // rotate camera
+        const cameraRotation = this.player.sprite().rotation + Math.PI / 2;
         this.cameras.main.setRotation(-cameraRotation);
 
-        // leave a temporary blue trail
-        const trail = this.add.circle(this.player.x, this.player.y, 5, 0x000000f);
-        // put under player
-        trail.depth = -1;
+        // rotate minimap
+        this.map.minimap.setRotation(-cameraRotation);
 
-        // make trail get progressively smaller
-        this.tweens.add({
-            targets: trail,
-            scale: 0,
-            duration: 1000,
-            onComplete: () => {
-                trail.destroy();
-            },
+        
+        // console.log(this.cameras);
+        
+
+        this.player.movement();
+
+        this.enemies.chase();
+
+
+        // crosshair position
+        this.crosshair.update();
+
+
+        // check if any enemy is within the crosshair
+        this.enemies.sprites().getChildren().forEach((enemy) => {
+            if (this.physics.overlap(this.crosshair.sprite(), enemy)) {
+                enemy.setTint(0xff0000);
+            } else {
+                enemy.clearTint();
+            }
         });
 
-        // make trail go from white to red
-        this.tweens.add({
-            targets: trail,
-            fillAlpha: 0,
-            duration: 1000,
-            onComplete: () => {
-                trail.destroy();
-            },
-        });
+
+
+        // this.heat += 0.01;
+        // if an enemy is within the crosshair, add to heat
+        // this.enemies.getChildren().forEach((enemy) => {
+        //     if (this.physics.overlap(this.crosshair, enemy)) {
+        //         this.heat += 0.05;
+        //     }
+        // });
+
+        // heat text
+        // let heatstring = '';
+        // for (let i = 1; i < this.heat; i++) {
+        // heatstring += '|';
+        // }
+        // this.text.setText('Heat: ' + Math.floor(this.heat) + '\n' + heatstring
+        // );
+
+
+
+
     }
-
 }
 
 
