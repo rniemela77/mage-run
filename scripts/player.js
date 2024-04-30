@@ -16,54 +16,71 @@ class Player {
 
         this.playerSpawn = { x: 400, y: this.height - 200 };
 
-        this.player = this.physics.add.image(this.playerSpawn.x, this.playerSpawn.y, 'player').setScale(1).setRotation(-Math.PI / 2);
+        this.player = this.physics.add.image(this.playerSpawn.x, this.playerSpawn.y, 'player').setScale(0.3).setRotation(-Math.PI / 2);
 
         this.player.setCollideWorldBounds(true);
         this.player.body.setCircle(15, 10, 10);
         this.player.setAngularDrag(10);
         this.player.setDrag(10);
-        this.player.setMaxVelocity(500);
+        this.player.setMaxVelocity(1);
         this.playerSpeed = 0.01;
 
         this.playerBullets = this.physics.add.group();
 
-        this.isShooting();
         this.leaveTrail();
         this.isLazering();
         this.layMines();
-        // this.time.addEvent({
-        // delay: 2500,
-        // callback: () => {
-        // console.log(this.scene.enemies.sprites())
-        // },
-        // loop: true,
-        // });
+        this.isShootingForward();
+
+        // if (this.scene.settings['isShooting']) {
+        this.isShooting();
+        // } else {
+        // this.isShooting(false);
+        // }
+
     }
 
     sprite() {
         return this.player;
     }
 
-    layMines() {
+    update() {
+        let nonPath = [
+            ...this.scene.map.grid.getChildren().filter((tile) => {
+                return tile.fillColor === 0x000000;
+            }),
+            ...this.scene.map.obstacles.getChildren()
+        ];
 
+        // if player overlaping nonpath
+        if (this.physics.overlap(this.player, nonPath)) {
+            this.playerSpeed = 0.01;
+        } else {
+            // this.player.clearTint();
+        }
+    }
+
+    layMines() {
         // every 1sec
         this.time.addEvent({
             delay: 1000,
             callback: () => {
-                // create turret (circle shape)new Phaser.Geom.Circle(this.player.x, this.player.y, 5);
-                const turret = this.scene.add.circle(this.player.x, this.player.y, 15, 0x00ff00);
-                this.physics.add.existing(turret);
-                turret.body.setCircle(30, -15, -15);
-                turret.body.setAllowGravity(false);
-                turret.setScale(1);
+                if (!this.scene.settings['isLayingMines']) return;
+
+                // create mine (circle shape)new Phaser.Geom.Circle(this.player.x, this.player.y, 5);
+                const mine = this.scene.add.circle(this.player.x, this.player.y, 15, 0x00ff00);
+                this.physics.add.existing(mine);
+                mine.body.setCircle(30, -15, -15);
+                mine.body.setAllowGravity(false);
+                mine.setScale(1);
 
                 // every 1sec
                 this.time.addEvent({
                     delay: 100,
                     callback: () => {
                         // if overlapping with enemy
-                        if (this.physics.overlap(turret, this.scene.enemies.sprites().getChildren())) {
-                            turret.setScale(3);
+                        if (this.physics.overlap(mine, this.scene.enemies.sprites().getChildren())) {
+                            mine.setScale(3);
 
                             // wait 0.5s
                             this.time.addEvent({
@@ -72,14 +89,14 @@ class Player {
 
                                     // remove enemy
                                     this.scene.enemies.sprites().getChildren().forEach((enemy) => {
-                                        if (this.physics.overlap(turret, enemy)) {
+                                        if (this.physics.overlap(mine, enemy)) {
                                             enemy.destroy();
                                         }
                                     });
 
 
-                                    // remove turret
-                                    turret.destroy();
+                                    // remove mine
+                                    mine.destroy();
                                 },
                             });
                         }
@@ -96,6 +113,8 @@ class Player {
         this.time.addEvent({
             delay: 2000,
             callback: () => {
+                if (!this.scene.settings['isLazering']) return;
+
                 // get closest enemy
                 const enemy = this.physics.closest(this.player, this.scene.enemies.sprites().getChildren());
 
@@ -124,11 +143,52 @@ class Player {
         });
     }
 
+    isShootingForward() {
+        // shoot a bullet at every enemy
+        this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                if (!this.scene.settings['isShootingForward']) return;
+
+                const bullet = this.scene.add.circle(0, 0, 5, 0xffffff);
+
+                this.physics.add.existing(bullet);
+                bullet.body.setCircle(10, -5, -5);
+                bullet.body.setAllowGravity(false);
+                bullet.setScale(1);
+                this.playerBullets.add(bullet);
+
+                bullet.x = this.player.x;
+                bullet.y = this.player.y;
+                // aim in front of player
+                bullet.body.setVelocity(
+                    250 * Math.cos(this.player.rotation),
+                    250 * Math.sin(this.player.rotation)
+                );
+
+                bullet.body.debugShowVelocity = false;
+
+
+                // destroy bullet after 1s
+                this.time.addEvent({
+                    delay: 2000,
+                    callback: () => {
+                        bullet.destroy();
+                    },
+
+                });
+            },
+            loop: true,
+        });
+    }
+
     isShooting() {
         // shoot a bullet at every enemy
         this.time.addEvent({
             delay: 1000,
             callback: () => {
+                if (!this.scene.settings['isShooting']) return;
+
                 this.scene.enemies.sprites().getChildren().forEach((enemy) => {
                     // do nothing if not red
                     if (enemy.tintTopLeft !== 0xff0000) {
@@ -198,7 +258,7 @@ class Player {
         } else if (Skey.isDown) {
             // this.playerSpeed = -1;
             // this.playerSpeed -= 0.02;
-            this.playerSpeed -= 0.03;
+            this.playerSpeed > -2 ? this.playerSpeed -= 0.03 : this.playerSpeed = -2;
 
         } else {
             // this.playerSpeed > 0 ? this.playerSpeed -= 0.01 : this.playerSpeed += 0.001;
@@ -241,6 +301,8 @@ class Player {
         this.time.addEvent({
             delay: 50,
             callback: () => {
+                if (!this.scene.settings['leaveTrail']) return;
+
                 // leave a temporary blue trail that shrinks over time
                 const trail = this.scene.add.circle(this.player.x, this.player.y, 5, 0x0000ff);
 

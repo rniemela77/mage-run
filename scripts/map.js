@@ -15,66 +15,43 @@ class Map {
         this.createBorder();
         this.createPath();
         this.createGrid();
-
         this.miniMap();
-
-        // create white
-        // this.circle = this.scene.add.circle(this.player.sprite().x, this.player.sprite().y, 200, 0xffffff);
-        // this.circle.setAlpha(0.2);
-        // this.physics.add.existing(this.circle);
-
-        // create a ring around the player
-        // this.ring = this.scene.add.circle(this.player.sprite().x, this.player.sprite().y, this.width / 3, 0xffffff);   
-        // this.ring.depth = -1;
-        // this.ring.fillAlpha = 0;
-        // this.ring.setStrokeStyle(150, 0xffffff);
-    
-        // this.ring.setAlpha(0.2);
-        // this.physics.add.existing(this.ring);
-
-
+        this.createGoal();
+        this.createObstacles();
     }
 
     update() {
     }
 
-    miniMap() {
-        // Create a new camera for the UI elements
-        // let UICamera = this.cameras.add(0, 0, 500, 200);
+    createGoal() {      
+        const randomTile = this.getRandomPathTile();
+        this.goal = this.scene.add.circle(randomTile.x + this.tileWidth / 2, randomTile.y + this.tileHeight / 2, 100, 0xffd700);
+        this.physics.add.existing(this.goal);
+        this.goal.body.setCircle(100, 0, 0);
+        this.goal.body.immovable = true;
+        this.goal.setAlpha(0.5);
 
-        // minimap
+        this.physics.add.overlap(this.player.sprite(), this.goal, () => {
+                    this.goal.destroy();
+                    this.createGoal();
+        });
+    }
+
+    getRandomPathTile() {
+        const pathTiles = this.grid.getChildren().filter((tile) => {
+            return tile.fillColor !== 0x000000;
+        });
+        return pathTiles[Math.floor(Math.random() * pathTiles.length)];
+    }
+
+    miniMap() {
         this.minimap = this.cameras.add(0, 0, this.width, this.height);
         this.minimap.startFollow(this.player.sprite());
-        this.minimap.setZoom(0.2);
-        this.minimap.setAlpha(0.2);
-
-        // console.log(this.minimap);
-
-        return this.minimap;
-        // const cameraRotation = this.player.sprite().rotation + Math.PI / 2;
-        // minimap.setRotation(-cameraRotation);
-
-        // camera ignores player and follows the UI
-        // UICamera.ignore(this.player.sprite());
-        // UICamera.ignore(this.enemies.sprites());
-
-        //zoom uicamera
-        // UICamera.setZoom(1);
-
-
-        // camera rotates with player 
-        // this.cameras.main.startFollow(this.player.sprite());
-
-
-
-        // create a circle around the player
-        // this.heat = 0;
-
+        this.minimap.setZoom(0.1);
+        this.minimap.setAlpha(0.5);
     }
 
     createBorder() {
-        this.width = 1500;
-        this.height = 1500;
         let width = this.width;
         let height = this.height;
         this.physics.world.setBounds(0, 0, width, height);
@@ -84,58 +61,110 @@ class Map {
         this.scene.add.rectangle(width - 20, 0, 20, height, 0x000000).setOrigin(0, 0);
     }
 
-    createGrid() {
-        // make the background a grid
-        // const gridSize = 500;
-        // for (let i = 0; i < this.scene.width; i += gridSize) {
-        //     this.scene.add.rectangle(i, 0, 1, this.scene.height, 0x000000).setOrigin(0, 0);
-        // }
-        // for (let i = 0; i < this.scene.height; i += gridSize) {
-        //     this.scene.add.rectangle(0, i, this.scene.width, 1, 0x000000).setOrigin(0, 0);
-        // }
-        // return;
+    createTrack() {
+        const circle2 = this.scene.add.circle(this.width / 2, this.height / 2, 400, 0x000000);
+        this.physics.add.existing(circle2);
+        circle2.body.setCircle(400, 0, 0);
+        circle2.body.immovable = true;
+        circle2.body.debugShowBody = true;
+        // collides with player
+        this.physics.add.collider(this.player.sprite(), circle2);
 
+        // slice of circle
+        const slice = new Phaser.Geom.Circle(this.width / 2, this.height / 2, 400);
+        const graphics = this.scene.add.graphics();
+        graphics.fillStyle(0xffffff, 1);
+        graphics.fillCircleShape(slice);
+        graphics.setAlpha(0.2);
+
+
+
+        this.physics.add.overlap(this.player.sprite(), circle2, () => {
+            // this.player.sprite().x = this.width / 2;
+            // this.player.sprite().y = this.height / 2;
+            console.log('overlapping 2')
+        });
+
+        const circle3 = this.scene.add.circle(this.width / 2, this.height / 2, 700, 0xffffff);
+        this.physics.add.existing(circle3);
+        circle3.body.setCircle(700, 0, 0);
+        circle3.setAlpha(0.2);
+        circle3.body.immovable = true;
+        circle3.body.debugShowBody = true;
+    }
+
+    createGrid() {
         // randomly generated track
         const track = [
-            ["1", "1", "1"],
-            ["1", "0", "1"],
-            ["1", "1", "1"],
+            ["1", "1", "1", "1", "1"],
+            ["1", "0", "0", "0", "1"],
+            ["1", "0", "1", "1", "1"],
+            ["1", "0", "1", "0", "1"],
+            ["1", "1", "1", "1", "1"],
         ];
 
         const gridRows = track.length;
         const gridCols = track[0].length;
 
-        const tileWidth = this.width / gridCols;
-        const tileHeight = this.height / gridRows;
+        this.tileWidth = this.width / gridCols;
+        this.tileHeight = this.height / gridRows;
 
-        const tileSize = Math.min(tileWidth, tileHeight);
+        this.grid = this.physics.add.group();
 
         for (let i = 0; i < track.length; i++) {
             for (let j = 0; j < track[i].length; j++) {
                 const tile = track[i][j];
-                if (tile === "1") {
-                    const rect = this.scene.add.rectangle(j * tileWidth, i * tileHeight, tileWidth, tileHeight, 0xffffff);
+                let rect = null;
+                if (tile === "0") {
+                    rect = this.scene.add.rectangle(j * this.tileWidth, i * this.tileHeight, this.tileWidth, this.tileHeight, 0x000000);
                     this.physics.add.existing(rect);
                     rect.body.immovable = true;
                     rect.body.debugShowBody = false;
                     rect.depth = -1;
                     rect.setOrigin(0, 0);
-                    rect.alpha = 0.2;
-
-
+                } else {
+                    rect = this.scene.add.rectangle(j * this.tileWidth, i * this.tileHeight, this.tileWidth, this.tileHeight, 0x333333);
+                    this.physics.add.existing(rect);
+                    rect.body.immovable = true;
+                    rect.body.debugShowBody = false;
+                    rect.depth = -1;
+                    rect.setOrigin(0, 0);
                 }
+
+                this.grid.add(rect);
             }
         }
     }
 
+    createObstacles() {
+        // for each 
+        this.obstacles = this.physics.add.group();
+
+        // place along edges of path tiles
+        this.grid.getChildren().forEach((tile) => {
+            if (tile.fillColor === 0x000000) {
+                const randomSize = Phaser.Math.Between(40, 180);
+                const randomX = tile.x + this.tileWidth;
+                const randomY = tile.y + this.tileHeight;
+                const circle = this.scene.add.circle(randomX, randomY, randomSize, 0x000000);
+                this.obstacles.add(circle);
+                this.physics.add.existing(circle);
+                circle.body.setCircle(randomSize, 0, 0);
+                circle.body.immovable = true;
+                circle.depth = -1;
+            }
+        });
+    }
+
     createCircles() {
+        // for each 
         return;
         this.obstacles = this.physics.add.group();
         for (let i = 0; i < 10; i++) {
             const randomSize = Phaser.Math.Between(70, 300);
             const randomX = Phaser.Math.Between(0, this.width);
             const randomY = Phaser.Math.Between(0, this.height);
-            const circle = this.scene.add.circle(randomX, randomY, randomSize, 0x666666);
+            const circle = this.scene.add.circle(randomX, randomY, randomSize, 0x111111);
             this.obstacles.add(circle);
             this.physics.add.existing(circle);
             circle.body.setCircle(randomSize, 0, 0);
