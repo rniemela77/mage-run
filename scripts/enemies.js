@@ -106,27 +106,50 @@ class Enemy {
         // when enemy is destroyed
         enemy.on('destroy', () => {
             // leave behind an exp
-            const exp = this.scene.add.rectangle(enemy.x, enemy.y, 20, 20, 0x5599ff);
-            this.physics.add.existing(exp);
-            exp.body.setCircle(40, 0, 0);
-            exp.body.setAllowGravity(false);
-            exp.body.setImmovable(true);
-            exp.body.debugShowBody = false;
-
-
-            // on scene update
-            this.scene.events.on('update', () => {
-                // rotate square
-                exp.rotation += 0.1;
-
-                // check for collision with player
-                this.physics.add.overlap(this.player.sprite(), exp, (player, exp) => {
-                    console.log('picked up exp')
-                    exp.destroy();
-                });
-            })
+            this.createExp(enemy);
         });
     };
+
+    createExp(enemy) {
+        const exp = this.scene.add.rectangle(enemy.x, enemy.y, 20, 20, 0x5599ff);
+        this.physics.add.existing(exp);
+        exp.body.setCircle(50, -40, -40);
+        exp.body.setAllowGravity(false);
+        exp.body.setImmovable(true);
+        exp.body.debugShowBody = true;
+
+
+        // on scene update
+        this.scene.events.on('update', () => {
+            // rotate square
+            exp.rotation += 0.1;
+
+            // check for collision with player
+            this.physics.add.overlap(this.player.sprite(), exp, (player, exp) => {
+                console.log('picked up exp')
+                
+                // make it move toward the player
+                this.physics.moveTo(exp, player.x, player.y, 100);
+                // tween it down to 0 scale
+                this.scene.tweens.add({
+                    targets: exp,
+                    scale: 0,
+                    duration: 500,
+                    onComplete: () => {
+                        // destroy exp
+                        exp.destroy();
+                    },
+                });
+
+                this.time.addEvent({
+                    delay: 500,
+                    callback: () => {
+                        exp.destroy();
+                    },
+                });
+            });
+        })
+    }
 
 
     chase() {
@@ -136,21 +159,25 @@ class Enemy {
     }
 
     giveHealthBar(enemy) {
-        const healthBarSize = 30;
+        const healthBarSize = 10;
         const healthBar = this.scene.add.rectangle(enemy.x, enemy.y, healthBarSize, 1, 0x00ff00);
         const healthBarBack = this.scene.add.rectangle(enemy.x, enemy.y, healthBarSize, 1, 0x770000);
-        const distanceFromPlayer = 20;
+        const distanceFromUnit = 15;
 
         this.scene.events.on('update', () => {
-            // make healthbar above enemy relative to player
-            healthBar.x = enemy.x + distanceFromPlayer * Math.cos(this.player.sprite().rotation);
-            healthBar.y = enemy.y + distanceFromPlayer * Math.sin(this.player.sprite().rotation);
-            healthBarBack.x = enemy.x + distanceFromPlayer * Math.cos(this.player.sprite().rotation);
-            healthBarBack.y = enemy.y + distanceFromPlayer * Math.sin(this.player.sprite().rotation);
-
             // scale health bar
             healthBar.width = healthBarSize * enemy.life;
             healthBarBack.width = healthBarSize * enemy.totalLife;
+
+            // make healthbar above enemy relative to player
+            const healthBarPositionX = enemy.x + distanceFromUnit * Math.cos(this.player.sprite().rotation);
+            const healthBarPositionY = enemy.y + distanceFromUnit * Math.sin(this.player.sprite().rotation);
+
+            healthBar.x = healthBarPositionX;
+            healthBar.y = healthBarPositionY;
+            healthBarBack.x = healthBarPositionX;
+            healthBarBack.y = healthBarPositionY;
+
 
             // rotate
             healthBar.rotation = this.player.sprite().rotation + Math.PI / 2;
