@@ -31,9 +31,12 @@ class Player {
         this.isLazering();
         this.layMines();
         this.isShootingForward();
+        this.isShootingNForward();
 
         // if (this.scene.settings['isShooting']) {
         this.isShooting();
+
+        this.isLockingOn();
         // } else {
         // this.isShooting(false);
         // }
@@ -49,7 +52,7 @@ class Player {
             ...this.scene.map.grid.getChildren().filter((tile) => {
                 return tile.fillColor === 0x000000;
             }),
-            ...this.scene.map.obstacles.getChildren()
+            ...this.scene?.map?.obstacles?.getChildren() ?? [],
         ];
 
         // if player overlaping nonpath
@@ -58,6 +61,109 @@ class Player {
         } else {
             // this.player.clearTint();
         }
+    }
+
+    // long line that stays
+    // this.time.addEvent({
+    //     delay: 2000,
+    //     callback: () => {
+    //         let enemy1 = this.enemies.sprites().getChildren()[0];
+    //         let enemy2 = this.enemies.sprites().getChildren()[1];
+
+    //         const line = new Phaser.Geom.Line(this.player.sprite().x, this.player.sprite().y, enemy1.x, enemy1.y);
+    //         const graphics = this.add.graphics();
+    //         graphics.lineStyle(1, 0xff0000, 1);
+    //         graphics.strokeLineShape(line);
+    //         this.time.addEvent({
+    //             delay: 2000,
+    //             callback: () => {
+    //                 graphics.destroy();
+    //             },
+    //         });
+    //     },
+    //     loop: true,
+    // });
+
+    isLockingOn() {
+        if (!this.scene.settings['isLockingOn']) return;
+
+        // create a circle 200px in front of player
+        const distanceFromPlayer = 120;
+        const circleSize = 50;
+        const circle = this.scene.add.circle(0, 0, circleSize, 0xffffff);
+        this.physics.add.existing(circle);
+        circle.setStrokeStyle(1, 0x0000ff);
+        //show only stroke
+        circle.setFillStyle(0x000000, 0);
+        circle.body.setCircle(circleSize, -circleSize / 2, -circleSize / 2);
+
+        // on scene update circle position
+        this.scene.events.on('update', () => {
+            circle.x = this.player.x + distanceFromPlayer * Math.cos(this.player.rotation);
+            circle.y = this.player.y + distanceFromPlayer * Math.sin(this.player.rotation);
+
+            // check if enemy is in circle
+            this.scene.enemies.sprites().getChildren().forEach((enemy) => {
+                if (this.physics.overlap(circle, enemy)) {
+                    console.log('enemy in circle')
+                    // enemy.setTint(0xff0000);
+                    // create a line from the player to the enemy
+                    const line = new Phaser.Geom.Line(this.player.x, this.player.y, enemy.x, enemy.y);
+                    const graphics = this.scene.add.graphics();
+                    graphics.lineStyle(1, 0xff0000, 1);
+                    graphics.strokeLineShape(line);
+                    this.time.addEvent({
+                        delay: 10,
+                        callback: () => {
+                            graphics.destroy();
+                        },
+                    });
+                    return;
+                } else {
+                    // enemy.clearTint();
+                }
+            });
+        });
+
+
+
+
+
+
+        return;
+        // every 1sec
+        this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                if (!this.scene.settings['isLockingOn']) return;
+
+                // get closest enemy
+                const enemy = this.physics.closest(this.player, this.scene.enemies.sprites().getChildren());
+
+                // do nothing if no enemy
+                if (!enemy) {
+                    return;
+                }
+
+                // do nothing if not red
+                if (enemy.tintTopLeft !== 0xff0000) {
+                    return;
+                }
+
+                // create line from player to enemy
+                const line = new Phaser.Geom.Line(this.player.x, this.player.y, enemy.x, enemy.y);
+                const graphics = this.scene.add.graphics();
+                graphics.lineStyle(1, 0xff0000, 1);
+                graphics.strokeLineShape(line);
+                this.time.addEvent({
+                    delay: 100,
+                    callback: () => {
+                        graphics.destroy();
+                    },
+                });
+            },
+            loop: true,
+        });
     }
 
     layMines() {
@@ -138,6 +244,47 @@ class Player {
                         graphics.destroy();
                     },
                 });
+            },
+            loop: true,
+        });
+    }
+
+    isShootingNForward(n = 3) {
+        const bulletSpacing = 0.1;
+        // shoot a bullet at every enemy
+        this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                for (let i = 0; i < n; i++) {
+                    if (!this.scene.settings['isShootingNForward']) return;
+
+                    // if its the middle bullet or middle 2
+                    let middle = false;
+                    if (n % 2 === 1 && i === Math.floor(n / 2) || n % 2 === 0 && (i === n / 2 || i === n / 2 - 1)) {
+                        middle = true;
+                    }
+
+                    const bullet = this.scene.add.circle(0, 0, 2, 0xffffff);
+
+                    this.physics.add.existing(bullet);
+                    bullet.body.setCircle(10, -5, -5);
+                    bullet.body.setAllowGravity(false);
+                    bullet.setScale(1);
+                    this.playerBullets.add(bullet);
+
+                    bullet.x = this.player.x;
+                    bullet.y = this.player.y;
+                    // spread bullets
+                    const xVelocity = 250 * Math.cos(this.player.rotation + i * bulletSpacing - (n - 1) * bulletSpacing / 2);
+                    const yVelocity = 250 * Math.sin(this.player.rotation + i * bulletSpacing - (n - 1) * bulletSpacing / 2);
+                    bullet.body.setVelocity(
+                        middle ? xVelocity * 1.05 : xVelocity,
+                        middle ? yVelocity * 1.05 : yVelocity
+                        
+                    );
+
+                    bullet.body.debugShowVelocity = false;
+                }
             },
             loop: true,
         });

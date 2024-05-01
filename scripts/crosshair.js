@@ -13,8 +13,11 @@ class Crosshair {
         this.crosshair = scene.add.circle(this.player.sprite().x, this.player.sprite().y, 1, 0xffffff);
         this.physics.add.existing(this.crosshair);
         this.crosshair.body.setCircle(100, -100, -100);
+        this.crosshair.depth = 1;
 
-        this.showLOS()
+        // show debug
+
+        // this.showLOS()
     }
 
     update() {

@@ -20,9 +20,6 @@ class Map {
         this.createObstacles();
     }
 
-    update() {
-    }
-
     createGoal() {      
         const randomTile = this.getRandomPathTile();
         this.goal = this.scene.add.circle(randomTile.x + this.tileWidth / 2, randomTile.y + this.tileHeight / 2, 100, 0xffd700);
@@ -48,7 +45,7 @@ class Map {
         this.minimap = this.cameras.add(0, 0, this.width, this.height);
         this.minimap.startFollow(this.player.sprite());
         this.minimap.setZoom(0.1);
-        this.minimap.setAlpha(0.5);
+        this.minimap.setAlpha(0.3);
     }
 
     createBorder() {
@@ -137,6 +134,9 @@ class Map {
     }
 
     createObstacles() {
+        //red snakes
+        // return;
+
         // for each 
         this.obstacles = this.physics.add.group();
 
