@@ -32,11 +32,13 @@ class Player {
         this.layMines();
         this.isShootingForward();
         this.isShootingNForward();
+        this.playerHeatBar();
 
         // if (this.scene.settings['isShooting']) {
         this.isShooting();
 
         this.isLockingOn();
+        this.playerExpBar();
         // } else {
         // this.isShooting(false);
         // }
@@ -249,6 +251,74 @@ class Player {
         });
     }
 
+    playerHeatBar() {
+        this.playerHeat = 0;
+
+        // create 10 bars that float under the player
+
+        const bar = this.scene.add.rectangle(0, 0, 2, 2, 0xff0000);
+        bar.setDepth(1);
+
+        // on scene update, update bar width
+        this.scene.events.on('update', () => {
+            const distanceFromPlayer = 0;
+            bar.x = this.player.x - distanceFromPlayer * Math.cos(this.player.rotation);
+            bar.y = this.player.y - distanceFromPlayer * Math.sin(this.player.rotation);
+            bar.rotation = this.player.rotation + Math.PI / 2;
+
+            // VERTICAL BAR
+            // bar.scaleY = this.playerHeat > 0 ? this.playerHeat / 10 : 0;
+
+            // HORIZONTAL BAR
+            bar.scaleX = this.playerHeat > 0 ? this.playerHeat / 10 : 0;
+        });
+
+
+        // on scene update
+        this.scene.events.on('update', () => {
+            this.playerHeat += Math.abs(this.playerSpeed) - 1;
+
+            if (this.playerHeat < 0) {
+                this.playerHeat = 0;
+            }
+
+        });
+
+    }
+
+    playerExpBar() {
+        this.playerTotalHealth = 100;
+        this.playerHealth = 100;
+
+        // create a bar for each 10 health
+        for (let i = 0; i < this.playerTotalHealth / 10; i++) {
+            const bar = this.scene.add.rectangle(0, 0, 20, 5, 0x00ff00);
+
+
+            bar.setDepth(1);
+
+            // on scene update, update bar width
+            this.scene.events.on('update', () => {
+                bar.x = this.player.x - 50 * Math.cos(this.player.rotation);
+                bar.y = this.player.y - 50 * Math.sin(this.player.rotation);
+                bar.rotation = this.player.rotation + Math.PI / 2;
+            });
+        }
+        // const bar = this.scene.add.rectangle(0, 0, 2, 5, 0x00ff00);
+        // bar.setDepth(1);
+
+        // // on scene update place it below player
+        // this.scene.events.on('update', () => {
+        //     // place under player, 50px below, account for player rotation
+        //     bar.x = this.player.x - 50 * Math.cos(this.player.rotation);
+        //     bar.y = this.player.y - 50 * Math.sin(this.player.rotation);
+
+        //     // rotate
+        //     bar.rotation = this.player.rotation + Math.PI / 2;
+
+        // });
+    }
+
     isShootingNForward(n = 3) {
         const bulletSpacing = 0.1;
         // shoot a bullet at every enemy
@@ -257,6 +327,11 @@ class Player {
             callback: () => {
                 for (let i = 0; i < n; i++) {
                     if (!this.scene.settings['isShootingNForward']) return;
+
+                    // if (this.playerHeat <= 5) return;
+
+                    // this.playerHeat -= 5;
+
 
                     // if its the middle bullet or middle 2
                     let middle = false;
@@ -280,7 +355,7 @@ class Player {
                     bullet.body.setVelocity(
                         middle ? xVelocity * 1.05 : xVelocity,
                         middle ? yVelocity * 1.05 : yVelocity
-                        
+
                     );
 
                     bullet.body.debugShowVelocity = false;

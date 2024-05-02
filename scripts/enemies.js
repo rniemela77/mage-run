@@ -13,11 +13,12 @@ class Enemy {
 
         // periodically add enemies
         this.time.addEvent({
-            delay: 1000,
+            delay: 200,
             callback: () => {
-                console.log('creating enemy');
-                if (this.enemies.getChildren().length < 5)
+                if (this.enemies.getChildren().length < 5) {
                     this.createEnemy();
+                    console.log('creating enemy');
+                }
             },
             loop: true,
         });
@@ -43,9 +44,7 @@ class Enemy {
                     bullet.body.setVelocity(
                         50 * Math.cos(this.physics.moveToObject(bullet, this.player.sprite(), 100)),
                         50 * Math.sin(this.physics.moveToObject(bullet, this.player.sprite(), 100))
-                    ); 2
-
-
+                    );
 
                     // remove debug graphics
                     bullet.body.debugShowBody = false;
@@ -80,8 +79,17 @@ class Enemy {
         const enemyHealth = Math.floor(Math.random() * 3) + 1;
         const enemySize = 10 * enemyHealth;
 
-        const enemyPositionX = this.player.sprite().x - 200 * Math.cos(this.player.sprite().rotation);
-        const enemyPositionY = this.player.sprite().y - 200 * Math.sin(this.player.sprite().rotation);
+        // enemy is 200 units away from player
+        const distanceFromPlayer = Math.random() > 0.5 ? 200 : -200;
+
+        let rotationFromPlayerX = Math.sin(this.player.sprite().rotation);
+        let rotationFromPlayerY = Math.cos(this.player.sprite().rotation);
+        if (Math.random() > 0.5) {
+            rotationFromPlayerX = Math.cos(this.player.sprite().rotation);
+            rotationFromPlayerY = Math.sin(this.player.sprite().rotation);
+        }
+        const enemyPositionX = this.player.sprite().x + distanceFromPlayer * rotationFromPlayerX;
+        const enemyPositionY = this.player.sprite().y + distanceFromPlayer * rotationFromPlayerY;
 
         // enemy is rectangle
         const enemy = this.scene.add.rectangle(enemyPositionX, enemyPositionY, enemySize, enemySize, 0x00ff00);
@@ -99,7 +107,8 @@ class Enemy {
         // make enemy face player
         this.scene.events.on('update', () => {
             if (enemy.life > 0) {
-                enemy.rotation = this.physics.moveToObject(enemy, this.player.sprite(), 100) + 70;
+                // face AND move toward player
+                // enemy.rotation = this.physics.moveToObject(enemy, this.player.sprite(), 100) + 70;
             }
         });
 
@@ -111,63 +120,92 @@ class Enemy {
     };
 
     createExp(enemy) {
-        const exp = this.scene.add.rectangle(enemy.x, enemy.y, 20, 20, 0x5599ff);
+        const exp = this.scene.add.rectangle(enemy.x, enemy.y, 5, 5, 0xffffff, 0.1);
         this.physics.add.existing(exp);
         exp.body.setCircle(50, -40, -40);
+        // make fill invisible
+        // add yellow gold border
+        exp.setStrokeStyle(5, 0xffd700);
         exp.body.setAllowGravity(false);
         exp.body.setImmovable(true);
         exp.body.debugShowBody = true;
 
+        exp.collected = false;
 
-        // on scene update
+        // when player touches uncollected exp
+        this.physics.add.overlap(this.player.sprite(), exp, (player, exp) => {
+            if (!exp.collected) {
+                exp.collected = true;
+            }
+        });
+
+        // on scene update, move all collected exp toward player
         this.scene.events.on('update', () => {
-            // rotate square
             exp.rotation += 0.1;
 
-            // check for collision with player
-            this.physics.add.overlap(this.player.sprite(), exp, (player, exp) => {
-                console.log('picked up exp')
-                
-                // make it move toward the player
-                this.physics.moveTo(exp, player.x, player.y, 100);
-                // tween it down to 0 scale
-                this.scene.tweens.add({
-                    targets: exp,
-                    scale: 0,
-                    duration: 500,
-                    onComplete: () => {
-                        // destroy exp
-                        exp.destroy();
-                    },
-                });
+            // move toward player
+            if (exp.collected) {
 
-                this.time.addEvent({
-                    delay: 500,
-                    callback: () => {
-                        exp.destroy();
-                    },
-                });
-            });
-        })
+
+                if (exp.scale > 0.1) {
+                    this.physics.moveTo(exp, this.player.sprite().x, this.player.sprite().y, 300);
+                    exp.scale -= 0.01;
+                } else {
+                    exp.destroy();
+                }
+
+            }
+        });
     }
 
 
     chase() {
         this.enemies.getChildren().forEach((enemy) => {
-            this.physics.moveToObject(enemy, this.player.sprite(), 40);
+            let enemySpeed = 50;
+            if (enemy.totalLife === 3) {
+                let targetPositionX = this.player.sprite().x;
+                let targetPositionY = this.player.sprite().y;
+
+                if (Math.random() < 0.05) {
+                    // if player is moving, aim where the player will be
+                    const amount = 3000;
+                    targetPositionX += amount * Math.cos(this.player.sprite().rotation);
+                    targetPositionY += amount * Math.sin(this.player.sprite().rotation);
+
+                    enemySpeed = 25;
+                    this.physics.moveToObject(enemy, this.player.sprite(), enemySpeed);
+                } else {
+                    // enemySpeed = 0;
+                    // this.physics.moveToObject(enemy, this.player.sprite(), 0);
+                }
+                // this.physics.moveToObject(enemy, this.player.sprite(), 100) + 70;
+                
+
+                return;
+            }
+            if (enemy.totalLife === 2) {
+                // enemySpeed = 75;
+                // this.physics.moveToObject(enemy, this.player.sprite(), enemySpeed);
+                return;
+            }
+            if (enemy.totalLife === 1) {
+                // enemySpeed = 100;
+                // this.physics.moveToObject(enemy, this.player.sprite(), enemySpeed);
+                return;
+            }
         });
     }
 
     giveHealthBar(enemy) {
-        const healthBarSize = 10;
+        const healthBarSize = 10 * enemy.life;
         const healthBar = this.scene.add.rectangle(enemy.x, enemy.y, healthBarSize, 1, 0x00ff00);
         const healthBarBack = this.scene.add.rectangle(enemy.x, enemy.y, healthBarSize, 1, 0x770000);
-        const distanceFromUnit = 15;
+        const distanceFromUnit = 17;
 
         this.scene.events.on('update', () => {
             // scale health bar
-            healthBar.width = healthBarSize * enemy.life;
-            healthBarBack.width = healthBarSize * enemy.totalLife;
+            healthBar.scaleX = enemy.life / enemy.totalLife;
+
 
             // make healthbar above enemy relative to player
             const healthBarPositionX = enemy.x + distanceFromUnit * Math.cos(this.player.sprite().rotation);
@@ -182,7 +220,7 @@ class Enemy {
             // rotate
             healthBar.rotation = this.player.sprite().rotation + Math.PI / 2;
             healthBarBack.rotation = this.player.sprite().rotation + Math.PI / 2;
-            
+
 
             healthBarBack.depth = -1;
         });

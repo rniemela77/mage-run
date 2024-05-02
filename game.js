@@ -11,11 +11,20 @@ class Demo extends Phaser.Scene {
 
     /*
 
-                MODIFIERY
+                MODIFIERY - JOWERS
 
     */
     1
     create() {
+
+        // tilt shift
+        const camera = this.cameras.main;
+        // camera.postFX.addTiltShift(0.2, 0, 5);
+        // camera.postFX.addBokeh(1, 0.1, 0.1);
+        // camera.postFX.addPixelate(2);
+        
+        // radius, amount, contrast, blurX, blurY, strength
+
         this.height = height;
         this.width = width;
 
@@ -42,7 +51,7 @@ class Demo extends Phaser.Scene {
         // player bullet collision
         this.physics.add.overlap(this.enemies.sprites(), this.player.playerBullets, (enemy, bullet) => {
             // create a white block and put it over the enemy to give it a white flash
-            const whiteBlock = this.add.rectangle(enemy.x, enemy.y, 20, 20, 0xffffff, 1);
+            const whiteBlock = this.add.rectangle(enemy.x, enemy.y, enemy.width, enemy.width, 0xffffff, 1);
             // shrink the white block
             this.tweens.add({
                 targets: whiteBlock,
@@ -181,7 +190,7 @@ var config = {
         default: 'arcade',
         arcade: {
             gravity: { y: 0 },
-            debug: true,
+            // debug: true,
         },
     },
     scene: Demo,
