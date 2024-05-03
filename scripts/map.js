@@ -11,6 +11,9 @@ class Map {
         this.height = scene.height;
         this.width = scene.width;
 
+
+        this.obstacles = this.physics.add.group();
+
         this.createCircles();
         this.createBorder();
         this.createPath();
@@ -20,7 +23,7 @@ class Map {
         this.createObstacles();
     }
 
-    createGoal() {      
+    createGoal() {
         const randomTile = this.getRandomPathTile();
         this.goal = this.scene.add.circle(randomTile.x + this.tileWidth / 2, randomTile.y + this.tileHeight / 2, 100, 0xffd700);
         this.physics.add.existing(this.goal);
@@ -29,8 +32,8 @@ class Map {
         this.goal.setAlpha(0.5);
 
         this.physics.add.overlap(this.player.sprite(), this.goal, () => {
-                    this.goal.destroy();
-                    this.createGoal();
+            this.goal.destroy();
+            this.createGoal();
         });
     }
 
@@ -59,6 +62,7 @@ class Map {
     }
 
     createTrack() {
+        return;
         const circle2 = this.scene.add.circle(this.width / 2, this.height / 2, 400, 0x000000);
         this.physics.add.existing(circle2);
         circle2.body.setCircle(400, 0, 0);
@@ -91,6 +95,7 @@ class Map {
     }
 
     createGrid() {
+        
         // randomly generated track
         const track = [
             ["1", "1", "1", "1", "1"],
@@ -106,51 +111,68 @@ class Map {
         this.tileWidth = this.width / gridCols;
         this.tileHeight = this.height / gridRows;
 
-        this.grid = this.physics.add.group();
+        this.grid = 
+            this.physics.add.staticGroup();
 
         for (let i = 0; i < track.length; i++) {
             for (let j = 0; j < track[i].length; j++) {
                 const tile = track[i][j];
-                let rect = null;
+
+                let rect = this.scene.add.rectangle(j * this.tileWidth, i * this.tileHeight, this.tileWidth, this.tileHeight, 0x333333);
+
+                // make collide with player
+                this.physics.add.existing(rect);
+
+                rect.setOrigin(0, 0);
+                rect.depth = -1;
+
                 if (tile === "0") {
-                    rect = this.scene.add.rectangle(j * this.tileWidth, i * this.tileHeight, this.tileWidth, this.tileHeight, 0x000000);
-                    this.physics.add.existing(rect);
-                    rect.body.immovable = true;
-                    rect.body.debugShowBody = false;
-                    rect.depth = -1;
-                    rect.setOrigin(0, 0);
-                } else {
-                    rect = this.scene.add.rectangle(j * this.tileWidth, i * this.tileHeight, this.tileWidth, this.tileHeight, 0x333333);
-                    this.physics.add.existing(rect);
-                    rect.body.immovable = true;
-                    rect.body.debugShowBody = false;
-                    rect.depth = -1;
-                    rect.setOrigin(0, 0);
+                    rect.fillColor = 0x000000;
                 }
 
                 this.grid.add(rect);
             }
         }
+
+        // for every black tile
+        this.grid.getChildren().forEach((tile) => {
+            if (tile.fillColor === 0x000000) {
+                this.obstacles.add(tile);
+
+                // collide with player
+                tile.body.immovable = true;
+
+                
+                this.physics.add.collider(this.player.sprite(), tile);
+
+                // when player overlaps
+                this.physics.add.overlap(this.player.sprite(), tile, () => {
+                    console.log('overlap')
+                    // this.player.playerSpeed -= 0.1;
+                });
+            }
+        });
     }
 
     createObstacles() {
-        //red snakes
-        // return;
-
-        // for each 
-        this.obstacles = this.physics.add.group();
-
+        return;
         // place along edges of path tiles
-        this.grid.getChildren().forEach((tile) => {
-            if (tile.fillColor === 0x000000) {
+        this.grid.getChildren().forEach((tile, i, z) => {
+            if (i <= z.length - 10) {
+                // if (tile.fillColor === 0x000000) {
                 const randomSize = Phaser.Math.Between(40, 180);
-                const randomX = tile.x + this.tileWidth;
-                const randomY = tile.y + this.tileHeight;
+                // const randomX = tile.x + this.tileWidth;
+                // const randomY = tile.y + this.tileHeight;
+                const randomX = tile.x + this.tileWidth / 2;
+                const randomY = tile.y + this.tileHeight / 2;
                 const circle = this.scene.add.circle(randomX, randomY, randomSize, 0x000000);
                 this.obstacles.add(circle);
                 this.physics.add.existing(circle);
                 circle.body.setCircle(randomSize, 0, 0);
                 circle.body.immovable = true;
+
+                this.physics.add.collider(this.player.sprite(), circle);
+
                 circle.depth = -1;
             }
         });

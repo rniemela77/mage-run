@@ -15,33 +15,25 @@ class Player {
         this.width = scene.width;
 
         this.playerSpawn = { x: 400, y: this.height - 200 };
-
         this.player = this.physics.add.image(this.playerSpawn.x, this.playerSpawn.y, 'player').setScale(0.3).setRotation(-Math.PI / 2);
-
         this.player.setCollideWorldBounds(true);
         this.player.body.setCircle(15, 10, 10);
-        this.player.setAngularDrag(10);
-        this.player.setDrag(10);
-        this.player.setMaxVelocity(1);
-        this.playerSpeed = 0.01;
+        this.player.setDepth(1);
+        this.player.setTint(0x00ff00);
 
         this.playerBullets = this.physics.add.group();
 
-        this.leaveTrail();
-        this.isLazering();
-        this.layMines();
-        this.isShootingForward();
-        this.isShootingNForward();
+        // this.isLazering();
+        // this.layMines();
+        // this.isShootingForward();
         this.playerHeatBar();
-
-        // if (this.scene.settings['isShooting']) {
-        this.isShooting();
+        // this.isShooting();
 
         this.isLockingOn();
         this.playerExpBar();
-        // } else {
-        // this.isShooting(false);
-        // }
+    }
+
+    createPlayer() {
 
     }
 
@@ -50,6 +42,7 @@ class Player {
     }
 
     update() {
+        return;
         let nonPath = [
             ...this.scene.map.grid.getChildren().filter((tile) => {
                 return tile.fillColor === 0x000000;
@@ -57,12 +50,37 @@ class Player {
             ...this.scene?.map?.obstacles?.getChildren() ?? [],
         ];
 
-        // if player overlaping nonpath
-        if (this.physics.overlap(this.player, nonPath)) {
-            this.playerSpeed = 0.01;
-        } else {
-            // this.player.clearTint();
+        // collide player with obstacle
+        this.physics.collide(this.player, nonPath);
+
+        // collide obstacles with enemies
+        // console.log('test')
+        if (this.scene.enemies) {
+            const enemies = this.scene.enemies.sprites().getChildren();
+            // console.log(enemies);
+            const obstacles = this.scene.map.obstacles.getChildren();
+            // console.log(obstacles);
+            this.physics.collide(enemies, obstacles);
+
+            // make obstacles unmovable
+            obstacles.forEach((obstacle) => {
+                obstacle.body.immovable = true;
+            });
         }
+        // console.log(this.enemies.sprites());
+        // this.physics.collide(this.enemies.sprites(), nonPath);
+
+
+
+        // console.log(this.scene?.map?.obstacles?.getChildren() ?? []);
+
+
+        // if player overlaping nonpath
+        // if (this.physics.overlap(this.player, nonPath)) {
+        // this.playerSpeed = 0.01;
+        // } else {
+        // this.player.clearTint();
+        // }
     }
 
     // long line that stays
@@ -93,11 +111,12 @@ class Player {
         const distanceFromPlayer = 120;
         const circleSize = 50;
         const circle = this.scene.add.circle(0, 0, circleSize, 0xffffff);
+        circle.body.setCircle(circleSize, -circleSize / 2, -circleSize / 2);
+        circle.body.setSize(circleSize, circleSize);
         this.physics.add.existing(circle);
         circle.setStrokeStyle(1, 0x0000ff);
         //show only stroke
         circle.setFillStyle(0x000000, 0);
-        circle.body.setCircle(circleSize, -circleSize / 2, -circleSize / 2);
 
         // on scene update circle position
         this.scene.events.on('update', () => {
@@ -216,46 +235,11 @@ class Player {
         });
     }
 
-    isLazering() {
-        // every 1sec
-        this.time.addEvent({
-            delay: 2000,
-            callback: () => {
-                if (!this.scene.settings['isLazering']) return;
-
-                // get closest enemy
-                const enemy = this.physics.closest(this.player, this.scene.enemies.sprites().getChildren());
-
-                // do nothing if no enemy
-                if (!enemy) {
-                    return;
-                }
-
-                // do nothing if not red
-                if (enemy.tintTopLeft !== 0xff0000) {
-                    return;
-                }
-
-                const line = new Phaser.Geom.Line(this.player.x, this.player.y, enemy.x, enemy.y);
-                const graphics = this.scene.add.graphics();
-                graphics.lineStyle(50, 0xff0000, 15);
-                graphics.strokeLineShape(line);
-                this.time.addEvent({
-                    delay: 100,
-                    callback: () => {
-                        graphics.destroy();
-                    },
-                });
-            },
-            loop: true,
-        });
-    }
 
     playerHeatBar() {
         this.playerHeat = 0;
 
         // create 10 bars that float under the player
-
         const bar = this.scene.add.rectangle(0, 0, 2, 2, 0xff0000);
         bar.setDepth(1);
 
@@ -276,12 +260,11 @@ class Player {
 
         // on scene update
         this.scene.events.on('update', () => {
-            this.playerHeat += Math.abs(this.playerSpeed) - 1;
+            // this.playerHeat += Math.abs(this.playerSpeed) - 1;
 
             if (this.playerHeat < 0) {
                 this.playerHeat = 0;
             }
-
         });
 
     }
@@ -319,51 +302,6 @@ class Player {
         // });
     }
 
-    isShootingNForward(n = 3) {
-        const bulletSpacing = 0.1;
-        // shoot a bullet at every enemy
-        this.time.addEvent({
-            delay: 1000,
-            callback: () => {
-                for (let i = 0; i < n; i++) {
-                    if (!this.scene.settings['isShootingNForward']) return;
-
-                    // if (this.playerHeat <= 5) return;
-
-                    // this.playerHeat -= 5;
-
-
-                    // if its the middle bullet or middle 2
-                    let middle = false;
-                    if (n % 2 === 1 && i === Math.floor(n / 2) || n % 2 === 0 && (i === n / 2 || i === n / 2 - 1)) {
-                        middle = true;
-                    }
-
-                    const bullet = this.scene.add.circle(0, 0, 2, 0xffffff);
-
-                    this.physics.add.existing(bullet);
-                    bullet.body.setCircle(10, -5, -5);
-                    bullet.body.setAllowGravity(false);
-                    bullet.setScale(1);
-                    this.playerBullets.add(bullet);
-
-                    bullet.x = this.player.x;
-                    bullet.y = this.player.y;
-                    // spread bullets
-                    const xVelocity = 250 * Math.cos(this.player.rotation + i * bulletSpacing - (n - 1) * bulletSpacing / 2);
-                    const yVelocity = 250 * Math.sin(this.player.rotation + i * bulletSpacing - (n - 1) * bulletSpacing / 2);
-                    bullet.body.setVelocity(
-                        middle ? xVelocity * 1.05 : xVelocity,
-                        middle ? yVelocity * 1.05 : yVelocity
-
-                    );
-
-                    bullet.body.debugShowVelocity = false;
-                }
-            },
-            loop: true,
-        });
-    }
 
     isShootingForward() {
         // shoot a bullet at every enemy
@@ -404,152 +342,6 @@ class Player {
         });
     }
 
-    isShooting() {
-        // shoot a bullet at every enemy
-        this.time.addEvent({
-            delay: 1000,
-            callback: () => {
-                if (!this.scene.settings['isShooting']) return;
-
-                this.scene.enemies.sprites().getChildren().forEach((enemy) => {
-                    // do nothing if not red
-                    if (enemy.tintTopLeft !== 0xff0000) {
-                        return;
-                    }
-
-                    const bullet = this.scene.add.circle(0, 0, 5, 0xffffff);
-
-                    this.physics.add.existing(bullet);
-                    bullet.body.setCircle(10, -5, -5);
-                    bullet.body.setAllowGravity(false);
-                    bullet.setScale(1);
-                    this.playerBullets.add(bullet);
-
-                    bullet.x = this.player.x;
-                    bullet.y = this.player.y;
-                    // aim at enemy
-                    bullet.body.setVelocity(
-                        50 * Math.cos(this.physics.moveToObject(bullet, enemy, 100)),
-                        50 * Math.sin(this.physics.moveToObject(bullet, enemy, 100))
-                    );
-
-                    bullet.body.debugShowVelocity = false;
-
-
-                    // destroy bullet after 1s
-                    this.time.addEvent({
-                        delay: 2000,
-                        callback: () => {
-                            bullet.destroy();
-                        },
-                    });
-                });
-            },
-            loop: true,
-        });
-    }
-
-    movement() {
-        // console.log('movement');
-        // set camera rotation to player rotation
-
-
-        // offset player rotation by 90 degrees
-        // this.player.rotation = this.player.rotation + Math.PI / 2;
-
-        const Wkey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
-        const Akey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
-        const Skey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
-        const Dkey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
-
-        // if player is on path
-        if (this.physics.overlap(this.player, this.path)) {
-            // console.log('on path');
-            // this.player.setScale(5);
-            // this.playerSpeed += 0.1;
-        } else {
-            // console.log('off path');
-            // this.playerSpeed -= 0.01;
-        }
-
-        // move forward
-        if (Wkey.isDown) {
-            // this.playerSpeed += 0.02;
-            this.playerSpeed < 2 ? this.playerSpeed += 0.03 : this.playerSpeed = 2;
-            // this.playerSpeed = 1;
-        } else if (Skey.isDown) {
-            // this.playerSpeed = -1;
-            // this.playerSpeed -= 0.02;
-            this.playerSpeed > -2 ? this.playerSpeed -= 0.03 : this.playerSpeed = -2;
-
-        } else {
-            // this.playerSpeed > 0 ? this.playerSpeed -= 0.01 : this.playerSpeed += 0.001;
-        }
-        this.player.x += this.playerSpeed * Math.cos(this.player.rotation);
-        this.player.y += this.playerSpeed * Math.sin(this.player.rotation);
-
-        // rotate via A/D keys or pointer
-        // angular velocity is affected by speed
-        if (Akey.isDown || this.input.activePointer.isDown && this.input.activePointer.x < this.width / 2) {
-            // sort of hard and slidey
-            // this.player.setAngularVelocity(
-            // -50
-            // this.player.body.angularVelocity -= 2
-            // )
-
-            // slidey
-            // this.player.setAngularVelocity(
-            //     this.player.body.angularVelocity - 1.5
-            // );
-
-            // hard turn
-            this.player.rotation -= 0.015;
-        } else if (Dkey.isDown || this.input.activePointer.isDown && this.input.activePointer.x > this.width / 2) {
-            // this.player.setAngularVelocity(50 + this.playerSpeed * 10);
-            // this.player.setAngularVelocity(
-            // this.player.body.angularVelocity += 7
-            // );
-            // this.player.setAngularVelocity(50)
-            this.player.rotation += 0.015;
-        } else {
-            // set angular velocity closer to 0
-            // this.player.setAngularVelocity(
-            // this.player.body.angularVelocity * 0.99
-            // );
-        }
-    }
-
-    leaveTrail() {
-        this.time.addEvent({
-            delay: 50,
-            callback: () => {
-                if (!this.scene.settings['leaveTrail']) return;
-
-                // leave a temporary blue trail that shrinks over time
-                const trail = this.scene.add.circle(this.player.x, this.player.y, 5, 0x0000ff);
-
-                trail.setDepth(-1);
-
-                this.time.addEvent({
-                    delay: 50,
-                    callback: (i) => {
-                        trail.setScale(trail.scaleX - 0.1);
-                        trail.setAlpha(trail.alpha - 0.15);
-                    },
-                    repeat: 10,
-                });
-
-                this.time.addEvent({
-                    delay: 500,
-                    callback: () => {
-                        trail.destroy();
-                    },
-                });
-            },
-            loop: true,
-        });
-
-    }
 }
 
 export default Player;

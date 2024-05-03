@@ -4,6 +4,10 @@ import Player from './scripts/player.js';
 import Crosshair from './scripts/crosshair.js';
 import Map from './scripts/map.js';
 import Ui from './scripts/ui.js';
+import Effects from './scripts/effects.js';
+import Movement from './scripts/movement.js';
+import Attacks from './scripts/attacks.js';
+
 class Demo extends Phaser.Scene {
     preload() {
         this.load.image('player', 'assets/triangle.png');
@@ -14,17 +18,8 @@ class Demo extends Phaser.Scene {
                 MODIFIERY - JOWERS
 
     */
-    1
+
     create() {
-
-        // tilt shift
-        const camera = this.cameras.main;
-        // camera.postFX.addTiltShift(0.2, 0, 5);
-        // camera.postFX.addBokeh(1, 0.1, 0.1);
-        // camera.postFX.addPixelate(2);
-        
-        // radius, amount, contrast, blurX, blurY, strength
-
         this.height = height;
         this.width = width;
 
@@ -38,90 +33,29 @@ class Demo extends Phaser.Scene {
             isLockingOn: false,
         }
 
+        this.attacks = new Attacks(this);
         this.player = new Player(this);
         this.enemies = new Enemy(this);
         this.crosshair = new Crosshair(this);
         this.map = new Map(this);
         this.ui = new Ui(this);
+        this.movement = new Movement(this);
+        this.effects = new Effects(this);
+        this.effects.leaveTrail();
+
+        this.attacks.isShootingNForward(2);
+        // this.attacks.autoAOEShooting();
+        // this.attacks.isLazering();
 
         this.cameras.main.startFollow(this.player.sprite());
         this.cameras.main.setZoom(3);
 
+        
+        // this.effects = new Effects(this);
+        // this.effects.tiltShift();
 
-        // player bullet collision
-        this.physics.add.overlap(this.enemies.sprites(), this.player.playerBullets, (enemy, bullet) => {
-            // create a white block and put it over the enemy to give it a white flash
-            const whiteBlock = this.add.rectangle(enemy.x, enemy.y, enemy.width, enemy.width, 0xffffff, 1);
-            // shrink the white block
-            this.tweens.add({
-                targets: whiteBlock,
-                scaleX: 0,
-                scaleY: 0,
-                duration: 100,
-            });
 
-            enemy.setBlendMode(Phaser.BlendModes.ADD);
-            this.time.addEvent({
-                delay: 200,
-                callback: () => {
-                    whiteBlock.destroy();
-                },
-            });
-
-            enemy.life -= 1;
-            if (enemy.life <= 0) {
-                enemy.destroy();
-            }
-            bullet.destroy();
-        });
-
-        // LINE OF CIRCLES
-        // this.time.addEvent({
-        //     delay: 500,
-        //     callback: () => {
-        //         let x = 0;
-        //         let y = 0;
-        //         if (Math.random() < 0.5) {
-        //             x = Math.random() * this.width;
-        //             y = 0;
-        //         } else {
-        //             x = 0;
-        //             y = Math.random() * this.height;
-        //         }
-                
-        //         const playerX = this.player.sprite().x;
-        //         const playerY = this.player.sprite().y;
-
-        //         // every 0.1s, create a circle and move it toward the player
-        //         this.time.addEvent({
-        //             delay: 100,
-        //             callback: () => {
-        //                 let circle = this.add.circle(x, y, 20, 0xff0000);
-
-        //                 this.physics.add.existing(circle);
-        //                 circle.body.setCircle(20, 0, 0);
-        //                 this.physics.moveTo(circle, playerX, playerY, 100);
-
-        //                 // after 5s, destroy the circle
-        //                 this.time.addEvent({
-        //                     delay: 5000,
-        //                     callback: () => {
-        //                         circle.destroy();
-        //                     },
-        //                 });
-        //             },
-        //             repeat: 10,
-        //         });
-        //     },
-        //     loop: true,
-        // });
-
-        // create a white square the size of a tile
-        // const whiteTile = this.add.rectangle(this.map.tileWidth / 2, this.map.tileHeight / 2, this.map.tileWidth, this.map.tileHeight, 0xffffff);
-        // this.physics.add.existing(whiteTile);
-        // whiteTile.body.setAllowGravity(false);
-        // whiteTile.body.setImmovable(true);
-        // whiteTile.body.debugShowBody = false;
+        
     }
 
 
@@ -132,10 +66,8 @@ class Demo extends Phaser.Scene {
         this.cameras.main.setRotation(-cameraRotation);
         this.map.minimap.setRotation(-cameraRotation);
 
-        this.player.movement();
-        this.player.update();
-
-        this.enemies.chase();
+        // this.player.movement();
+        // this.player.update();
 
         // this.crosshair.update();
 
@@ -165,11 +97,8 @@ class Demo extends Phaser.Scene {
         // }
         // this.text.setText('Heat: ' + Math.floor(this.heat) + '\n' + heatstring
         // );
-
-
-
-
     }
+
 }
 
 
@@ -190,7 +119,7 @@ var config = {
         default: 'arcade',
         arcade: {
             gravity: { y: 0 },
-            // debug: true,
+            debug: true,
         },
     },
     scene: Demo,

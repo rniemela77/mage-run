@@ -10,6 +10,8 @@ class Enemy {
 
 
         this.enemies = this.physics.add.group();
+        this.collision();
+        this.chase();
 
         // periodically add enemies
         this.time.addEvent({
@@ -71,6 +73,36 @@ class Enemy {
         // return this;
     }
 
+    collision() {
+        // player bullet collision
+        this.physics.add.overlap(this.enemies, this.player.playerBullets, (enemy, bullet) => {
+            // create a white block and put it over the enemy to give it a white flash
+            const whiteBlock = this.scene.add.rectangle(enemy.x, enemy.y, enemy.width * 1.3, enemy.width * 1.3, 0xffffff, 1);
+
+            // shrink the white block
+            this.scene.tweens.add({
+                targets: whiteBlock,
+                scaleX: 0,
+                scaleY: 0,
+                duration: 100,
+            });
+
+            this.time.addEvent({
+                delay: 100,
+                callback: () => {
+                    whiteBlock.destroy();
+                },
+            });
+
+            // deal damage
+            enemy.life -= 1;
+            if (enemy.life <= 0) {
+                enemy.destroy();
+            }
+            bullet.destroy();
+        });
+    }
+
     sprites() {
         return this.enemies;
     }
@@ -95,7 +127,6 @@ class Enemy {
         const enemy = this.scene.add.rectangle(enemyPositionX, enemyPositionY, enemySize, enemySize, 0x00ff00);
         this.physics.add.existing(enemy);
         enemy.body.setAllowGravity(false);
-        enemy.body.setImmovable(true);
         enemy.setScale(0.8);
         enemy.life = enemyHealth;
         enemy.totalLife = enemyHealth;
@@ -104,11 +135,65 @@ class Enemy {
 
         this.enemies.add(enemy);
 
-        // make enemy face player
+        // if enemy life 3
+        if (enemy.totalLife === 3) {
+            // give enemy blue fill
+            enemy.setFillStyle(0x3983ff);
+
+            // give enemy red outline
+            enemy.setStrokeStyle(0.5, 0xff0000);
+
+            // every 1s, lurch
+            this.time.addEvent({
+                delay: 3000,
+                callback: () => {
+                    this.lurchToPlayer(enemy);
+                },
+                loop: true,
+            });
+        }
+
+        // if enemy life 2
+        if (enemy.totalLife === 2) {
+            // give enemy orange fill
+            enemy.setFillStyle(0xffa500);
+
+            // every 2 seconds, chase player
+            this.time.addEvent({
+                delay: 2000,
+                callback: () => {
+                    this.chasePlayer(enemy);
+                },
+                loop: true,
+            });
+        }
+
+        // if enemy life 1
+        if (enemy.totalLife === 1) {
+            // give enemy red fill
+            enemy.setFillStyle(0xff0000);
+
+            // on scene update
+            this.scene.events.on('update', () => {
+                this.chasePlayer(enemy);
+            });
+        }
+
+        // on scene update, move enemy toward player
         this.scene.events.on('update', () => {
-            if (enemy.life > 0) {
-                // face AND move toward player
-                // enemy.rotation = this.physics.moveToObject(enemy, this.player.sprite(), 100) + 70;
+            // if enemy is destroyed, return
+            if (enemy.life <= 0) {
+                return;
+            }
+
+            if (enemy.totalLife === 3) {
+                // change enemy color to blue
+                enemy.setFillStyle(0x3983ff);
+
+            } else if (enemy.totalLife === 2) {
+                // this.chasePlayer(enemy);
+            } else if (enemy.totalLife === 1) {
+                // this.chasePlayer(enemy);
             }
         });
 
@@ -121,11 +206,12 @@ class Enemy {
 
     createExp(enemy) {
         const exp = this.scene.add.rectangle(enemy.x, enemy.y, 5, 5, 0xffffff, 0.1);
+
         this.physics.add.existing(exp);
-        exp.body.setCircle(50, -40, -40);
+        exp.body.setCircle(50, -50, -50);
         // make fill invisible
         // add yellow gold border
-        exp.setStrokeStyle(5, 0xffd700);
+        exp.setStrokeStyle(1, 0xffd700);
         exp.body.setAllowGravity(false);
         exp.body.setImmovable(true);
         exp.body.debugShowBody = true;
@@ -145,9 +231,7 @@ class Enemy {
 
             // move toward player
             if (exp.collected) {
-
-
-                if (exp.scale > 0.1) {
+                if (exp.scale > 0.3) {
                     this.physics.moveTo(exp, this.player.sprite().x, this.player.sprite().y, 300);
                     exp.scale -= 0.01;
                 } else {
@@ -158,39 +242,64 @@ class Enemy {
         });
     }
 
+    chasePlayer(enemy) {
+        if (enemy.life <= 0) {
+            return;
+        }
+        enemy.rotation = this.physics.moveToObject(enemy, this.player.sprite(), 100) + 70;
+    }
+
+    lurchToPlayer(enemy) {
+        if (enemy.life <= 0) {
+            return;
+        }
+
+        // find angle between enemy and player
+        const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.sprite().x, this.player.sprite().y);
+
+        const speed = 100;
+
+        // find point on angle that is 100px away from enemy toward player
+        const targetPositionX = enemy.x + speed * Math.cos(angle);
+        const targetPositionY = enemy.y + speed * Math.sin(angle);
+
+
+
+        // move enemy to that point
+        this.physics.moveTo(enemy, targetPositionX, targetPositionY, speed);
+
+
+        // if player is moving, aim where the player will be
+        // const amount = 3000;
+        // targetPositionX += amount * Math.cos(this.player.sprite().rotation);
+        // targetPositionY += amount * Math.sin(this.player.sprite().rotation);
+
+        // const enemySpeed = 50;
+
+        // this.physics.moveToObject(enemy, this.player.sprite(), enemySpeed);
+    }
 
     chase() {
+        return;
         this.enemies.getChildren().forEach((enemy) => {
-            let enemySpeed = 50;
+            // give enemy red outline
+            enemy.setStrokeStyle(0.5, 0xff0000);
+
             if (enemy.totalLife === 3) {
-                let targetPositionX = this.player.sprite().x;
-                let targetPositionY = this.player.sprite().y;
-
-                if (Math.random() < 0.05) {
-                    // if player is moving, aim where the player will be
-                    const amount = 3000;
-                    targetPositionX += amount * Math.cos(this.player.sprite().rotation);
-                    targetPositionY += amount * Math.sin(this.player.sprite().rotation);
-
-                    enemySpeed = 25;
-                    this.physics.moveToObject(enemy, this.player.sprite(), enemySpeed);
-                } else {
-                    // enemySpeed = 0;
-                    // this.physics.moveToObject(enemy, this.player.sprite(), 0);
-                }
-                // this.physics.moveToObject(enemy, this.player.sprite(), 100) + 70;
-                
+                // change enemy color to blue
+                enemy.setFillStyle(0x3983ff);
+                this.lurchToPlayer(enemy);
 
                 return;
             }
             if (enemy.totalLife === 2) {
                 // enemySpeed = 75;
-                // this.physics.moveToObject(enemy, this.player.sprite(), enemySpeed);
+                this.chasePlayer(enemy);
+
                 return;
             }
             if (enemy.totalLife === 1) {
-                // enemySpeed = 100;
-                // this.physics.moveToObject(enemy, this.player.sprite(), enemySpeed);
+                this.chasePlayer(enemy);
                 return;
             }
         });
