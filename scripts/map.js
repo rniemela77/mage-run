@@ -21,6 +21,11 @@ class Map {
         this.miniMap();
         this.createGoal();
         this.createObstacles();
+
+        // find where the player is and draw a line from the player to some non-black tile without breaking line of sight
+            // },
+            // loop: true,
+        // });
     }
 
     createGoal() {
@@ -32,6 +37,9 @@ class Map {
         this.goal.setAlpha(0.5);
 
         this.physics.add.overlap(this.player.sprite(), this.goal, () => {
+            if (this.goal.active === false) return;
+            if (this.player.exp < 5) return;
+            this.player.exp -= 5;
             this.goal.destroy();
             this.createGoal();
         });
@@ -52,13 +60,32 @@ class Map {
     }
 
     createBorder() {
+        // return;
         let width = this.width;
         let height = this.height;
+        const borderSize = 1;
+        const borderColor = 0xff0000;
         this.physics.world.setBounds(0, 0, width, height);
-        this.scene.add.rectangle(0, 0, width, 20, 0x000000).setOrigin(0, 0);
-        this.scene.add.rectangle(0, 0, 20, height, 0x000000).setOrigin(0, 0);
-        this.scene.add.rectangle(0, height - 20, width, 20, 0x000000).setOrigin(0, 0);
-        this.scene.add.rectangle(width - 20, 0, 20, height, 0x000000).setOrigin(0, 0);
+        let a = this.scene.add.rectangle(0, 0, width, borderSize, borderColor).setOrigin(0, 0);
+        let b = this.scene.add.rectangle(0, 0, borderSize, height, borderColor).setOrigin(0, 0);
+        let c = this.scene.add.rectangle(0, height - borderSize, width, borderSize, borderColor).setOrigin(0, 0);
+        let d = this.scene.add.rectangle(width - borderSize, 0, borderSize, height, borderColor).setOrigin(0, 0);
+
+        // add to physics and obstacles
+        this.physics.add.existing(a);
+        this.physics.add.existing(b);
+        this.physics.add.existing(c);
+        this.physics.add.existing(d);
+
+        this.obstacles.add(a);
+        this.obstacles.add(b);
+        this.obstacles.add(c);
+        this.obstacles.add(d);
+
+        a.body.immovable = true;
+        b.body.immovable = true;
+        c.body.immovable = true;
+        d.body.immovable = true;
     }
 
     createTrack() {
@@ -95,7 +122,7 @@ class Map {
     }
 
     createGrid() {
-        
+
         // randomly generated track
         const track = [
             ["1", "1", "1", "1", "1"],
@@ -111,7 +138,7 @@ class Map {
         this.tileWidth = this.width / gridCols;
         this.tileHeight = this.height / gridRows;
 
-        this.grid = 
+        this.grid =
             this.physics.add.staticGroup();
 
         for (let i = 0; i < track.length; i++) {
@@ -128,30 +155,37 @@ class Map {
 
                 if (tile === "0") {
                     rect.fillColor = 0x000000;
+                    rect.depth = 10;
                 }
+
+                // if this tile has only one other black tile around it, make it red
+                // if (tile === "0") {
+                //     let blackTiles = 0;
+                //     if (i > 0 && track[i - 1][j] === "0") {
+                //         blackTiles++;
+                //     }
+                //     if (i < track.length - 1 && track[i + 1][j] === "0") {
+                //         blackTiles++;
+                //     }
+                //     if (j > 0 && track[i][j - 1] === "0") {
+                //         blackTiles++;
+                //     }
+                //     if (j < track[i].length - 1 && track[i][j + 1] === "0") {
+                //         blackTiles++;
+                //     }
+                //     if (blackTiles === 1) {
+                //         // return;
+                //         rect.fillColor = 0xff0000;
+                //         rect.y -= this.tileWidth / 2;
+                //         const circle = this.scene.add.circle(j * this.tileWidth + this.tileWidth / 2, i * this.tileHeight + this.tileHeight / 2, this.tileWidth / 2, 0xff0000);
+                //     }
+                // }
+
 
                 this.grid.add(rect);
             }
         }
 
-        // for every black tile
-        this.grid.getChildren().forEach((tile) => {
-            if (tile.fillColor === 0x000000) {
-                this.obstacles.add(tile);
-
-                // collide with player
-                tile.body.immovable = true;
-
-                
-                this.physics.add.collider(this.player.sprite(), tile);
-
-                // when player overlaps
-                this.physics.add.overlap(this.player.sprite(), tile, () => {
-                    console.log('overlap')
-                    // this.player.playerSpeed -= 0.1;
-                });
-            }
-        });
     }
 
     createObstacles() {

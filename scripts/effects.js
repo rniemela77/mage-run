@@ -7,13 +7,14 @@ class Effects {
 
     tiltShift() {
         const camera = this.scene.cameras.main;
+        
         camera.postFX.addTiltShift(0.2, 0, 5);
     }
 
     blackTrail() {
         const player = this.scene.player.sprite();
 
-        // put black trail under player
+        // put black trail under player2
         const trail = this.scene.add.circle(player.x, player.y, 2, 0x000000);
         trail.setDepth(-1);
         this.time.addEvent({
@@ -42,6 +43,7 @@ class Effects {
                 const trail = this.scene.add.circle(this.player.sprite().x, this.player.sprite().y, 5, 0x0000ff);
 
                 trail.setDepth(-1);
+                
 
                 this.time.addEvent({
                     delay: 50,

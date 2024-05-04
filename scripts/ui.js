@@ -12,6 +12,22 @@ class Ui {
         this.width = scene.width;
 
         this.createUi();
+
+        // every 1s, update the UI
+
+        this.expText = this.scene.add.text(10, 10, `EXP: ${this.player.exp}`, {
+            fontSize: '30px',
+            fill: '#fff',
+        });
+        this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+
+                // update text
+                this.expText.setText(`EXP: ${this.player.exp}`);
+            },
+            loop: true,
+        });
     }
 
     createUi() {
@@ -20,6 +36,8 @@ class Ui {
         this.UICamera.setScroll(0, 0);
         this.UICamera.setZoom(1);
         this.UICamera.setBackgroundColor('rgba(0, 0, 0, 1)');
+
+        return;
 
         // Text
         const fontSize = 30;

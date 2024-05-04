@@ -7,6 +7,7 @@ import Ui from './scripts/ui.js';
 import Effects from './scripts/effects.js';
 import Movement from './scripts/movement.js';
 import Attacks from './scripts/attacks.js';
+import Collision from './scripts/collision.js';
 
 class Demo extends Phaser.Scene {
     preload() {
@@ -20,8 +21,9 @@ class Demo extends Phaser.Scene {
     */
 
     create() {
-        this.height = height;
-        this.width = width;
+        console.log('new scene')
+        this.height = height / 2;
+        this.width = width / 2;
 
         this.settings = {
             // isShooting: true,
@@ -41,21 +43,24 @@ class Demo extends Phaser.Scene {
         this.ui = new Ui(this);
         this.movement = new Movement(this);
         this.effects = new Effects(this);
+        this.collision = new Collision(this);
+
+        this.collision.blackTiles();
         this.effects.leaveTrail();
 
-        this.attacks.isShootingNForward(2);
+        this.attacks.isShootingNForward(5);
         // this.attacks.autoAOEShooting();
         // this.attacks.isLazering();
 
         this.cameras.main.startFollow(this.player.sprite());
         this.cameras.main.setZoom(3);
 
-        
+
         // this.effects = new Effects(this);
         // this.effects.tiltShift();
 
 
-        
+        this.attacks.wallSpiral();
     }
 
 
@@ -119,7 +124,7 @@ var config = {
         default: 'arcade',
         arcade: {
             gravity: { y: 0 },
-            debug: true,
+            // debug: true,
         },
     },
     scene: Demo,

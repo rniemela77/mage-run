@@ -23,6 +23,9 @@ class Player {
 
         this.playerBullets = this.physics.add.group();
 
+        this.exp = 0;
+        this.expMax = 5;
+
         // this.isLazering();
         // this.layMines();
         // this.isShootingForward();
@@ -31,6 +34,25 @@ class Player {
 
         this.isLockingOn();
         this.playerExpBar();
+
+
+        // add large red ball
+        const ball = this.scene.add.circle(this.scene.height - 150, this.scene.height - 200, 20, 0xff0000);
+        this.physics.add.existing(ball);
+        ball.body.setCircle(20, 0, 0);
+        ball.body.setAllowGravity(false);
+        // set velocity
+        ball.body.setVelocity(100, 100);
+        // bounce off world bounds
+        ball.body.setCollideWorldBounds(true);
+        // bounce off other objects
+        this.physics.add.collider(ball, this.enemies);
+        this.ball = ball;
+        
+
+        //bounce
+        const bouncey = false;
+        if (bouncey) ball.body.setBounce(1, 1);
     }
 
     createPlayer() {
@@ -40,69 +62,6 @@ class Player {
     sprite() {
         return this.player;
     }
-
-    update() {
-        return;
-        let nonPath = [
-            ...this.scene.map.grid.getChildren().filter((tile) => {
-                return tile.fillColor === 0x000000;
-            }),
-            ...this.scene?.map?.obstacles?.getChildren() ?? [],
-        ];
-
-        // collide player with obstacle
-        this.physics.collide(this.player, nonPath);
-
-        // collide obstacles with enemies
-        // console.log('test')
-        if (this.scene.enemies) {
-            const enemies = this.scene.enemies.sprites().getChildren();
-            // console.log(enemies);
-            const obstacles = this.scene.map.obstacles.getChildren();
-            // console.log(obstacles);
-            this.physics.collide(enemies, obstacles);
-
-            // make obstacles unmovable
-            obstacles.forEach((obstacle) => {
-                obstacle.body.immovable = true;
-            });
-        }
-        // console.log(this.enemies.sprites());
-        // this.physics.collide(this.enemies.sprites(), nonPath);
-
-
-
-        // console.log(this.scene?.map?.obstacles?.getChildren() ?? []);
-
-
-        // if player overlaping nonpath
-        // if (this.physics.overlap(this.player, nonPath)) {
-        // this.playerSpeed = 0.01;
-        // } else {
-        // this.player.clearTint();
-        // }
-    }
-
-    // long line that stays
-    // this.time.addEvent({
-    //     delay: 2000,
-    //     callback: () => {
-    //         let enemy1 = this.enemies.sprites().getChildren()[0];
-    //         let enemy2 = this.enemies.sprites().getChildren()[1];
-
-    //         const line = new Phaser.Geom.Line(this.player.sprite().x, this.player.sprite().y, enemy1.x, enemy1.y);
-    //         const graphics = this.add.graphics();
-    //         graphics.lineStyle(1, 0xff0000, 1);
-    //         graphics.strokeLineShape(line);
-    //         this.time.addEvent({
-    //             delay: 2000,
-    //             callback: () => {
-    //                 graphics.destroy();
-    //             },
-    //         });
-    //     },
-    //     loop: true,
-    // });
 
     isLockingOn() {
         if (!this.scene.settings['isLockingOn']) return;
